@@ -1,0 +1,16 @@
+{
+    "type": "demo",
+    "workNum": 5,
+    "mode": "local",
+    "rounds": [
+        {
+            "label": "open",
+            "number": [ 10, 20, 15 ]
+        },
+        {
+            "label": "deal",
+            "number": [ 4000, 5000 ],
+            "duration": [2, 3]
+        }
+    ]
+}
