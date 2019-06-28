@@ -71,6 +71,17 @@ func GetBlock(blockid string, bcname string) *pb.Block {
 	return out
 }
 
+func QueryTx(txid string, bcname string) *pb.TxStatus {
+	tx , _ := hex.DecodeString(txid)
+	in := &pb.TxStatus{
+		Header: header(),
+		Bcname: bcname,
+		Txid: tx,
+	}
+	out, _ := cli.QueryTx(context.Background(), in)
+	return out
+}
+
 func GetBlockChains() *pb.BlockChains {
 	in := &pb.CommonIn{
 		Header: header(),

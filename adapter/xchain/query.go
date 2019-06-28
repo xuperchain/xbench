@@ -25,6 +25,7 @@ func (q Query) Init(args ...interface{}) error {
 	for i := range accts {
 		txs, err := GenTx(bank, accts[i].Address, env.Chain, "10", "", "0")
 		if err != nil {
+			log.ERROR.Printf("prepare tokens error: %#v", err)
 			return err
 		}
 		PostTx(txs)

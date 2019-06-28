@@ -28,6 +28,9 @@ func createtx(i int, batch int, chain string) {
 		if err != nil {
 			log.ERROR.Printf("genTx error: %#v", err)
 		}
+		if i == 0 && c % 500 == 0 {
+			log.DEBUG.Printf("gen %d Tx", c)
+		}
 		txstore[i] <- tx
 	}
 	wg.Done()
@@ -60,11 +63,21 @@ func (d Deal) Init(args ...interface{}) error {
 	}
 	log.INFO.Printf("prepare tokens of test accounts ...")
 	time.Sleep(4 * time.Second)
+	lastx := ""
 	for j := range testaccts {
-		SplitUTXO(testaccts[j], env.Chain, amount)
+		lastx, _ = SplitUTXO(testaccts[j], env.Chain, amount)
 	}
 	log.INFO.Printf("prepare utxos of test accounts ...")
-	time.Sleep(4 * time.Second)
+	for {
+		rsp := QueryTx(lastx, env.Chain)
+		if rsp.Status == 2 {
+			break
+		} else {
+			log.DEBUG.Printf("waiting for split (%s) ...", lastx)
+			time.Sleep(5 * time.Second)
+		}
+	}
+	log.DEBUG.Printf("split done ...")
 	for k := range testaccts {
 		go createtx(k, amount, env.Chain)
 	}
