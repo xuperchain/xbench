@@ -16,6 +16,8 @@ const (
 	Open  CaseType = "open"
 	Query CaseType = "query"
 	Deal  CaseType = "deal"
+	Generate CaseType = "generate"
+	Invoke CaseType = "invoke"
 )
 
 const (

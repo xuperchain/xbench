@@ -21,7 +21,7 @@ func Worker(msg common.BenchMsg, wg *sync.WaitGroup, gStat chan *monitor.Latency
 
 	runTest := func(seq int) {
 		testStat.Start()
-		err := cb.Run(seq, msg.Args)
+		err := cb.Run(seq, msg.Env, msg.Args)
 		if err != nil {
 			testStat.RecordFail(1)
 		} else {
@@ -45,6 +45,9 @@ func Worker(msg common.BenchMsg, wg *sync.WaitGroup, gStat chan *monitor.Latency
 		}
 	} else {
 		for num := 0; num < msg.TxNumber; num++ {
+			if workerSeq == 0 && num % (msg.TxNumber / 10) == 0 && num > 0 {
+				log.INFO.Printf("run benchmark %d %%", num * 100 / msg.TxNumber)
+			}
 			runTest(workerSeq)
 		}
 	}

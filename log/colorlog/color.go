@@ -20,7 +20,7 @@ type ColouredFormatter struct {
 }
 
 func (f *ColouredFormatter) GetPrefix(lvl level) string {
-	return colour[lvl] + "++++ "
+	return colour[lvl]
 }
 
 func (f *ColouredFormatter) GetSuffix(lvl level) string {

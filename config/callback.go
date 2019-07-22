@@ -12,7 +12,8 @@ func SetCallBack(msg []*common.BenchMsg) {
 	demoOpen := demo.New(common.Open)
 	xchainDeal := xchain.New(common.Deal)
 	xchainQuery := xchain.New(common.Query)
-//	xchainOpen := xchain.New(common.Open)
+	xchainGenerate := xchain.New(common.Generate)
+	xchainInvoke := xchain.New(common.Invoke)
 
 	for _, v := range msg {
 		switch v.TestCase {
@@ -24,8 +25,10 @@ func SetCallBack(msg []*common.BenchMsg) {
 			v.CB = xchainDeal
 		case xchainQuery.GetTestCase():
 			v.CB = xchainQuery
-//		case xchainOpen.GetTestCase():
-//			v.CB = xchainOpen
+		case xchainGenerate.GetTestCase():
+			v.CB = xchainGenerate
+		case xchainInvoke.GetTestCase():
+			v.CB = xchainInvoke
 		default:
 			panic("unknown callback!")
 		}

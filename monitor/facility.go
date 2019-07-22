@@ -28,7 +28,7 @@ func TpsSummary(testStats []*LatencyStats) []TpsInfo {
 			Name:     v.ext,
 			Succ:     v.succ,
 			Fail:     v.fail,
-			SendRate: "TODO",
+			SendRate: fmt.Sprintf("%d", v.RatePerSec()),
 			MaxLat:   v.max,
 			MinLat:   v.min,
 			AvgLat:   v.Avg(),
@@ -46,11 +46,20 @@ func PrintFormat(testStats []*LatencyStats) {
 	table.AddHeaders("Round", "Name", "Succ", "Fail", "Send Rate",
 		"Max Latency", "Min Latency", "Avg Latency", "Throughput")
 	for i, v := range testStats {
-		table.AddRow(i+1, v.ext, v.succ, v.fail, "TODO",
+		table.AddRow(i+1, v.ext, v.succ, v.fail, fmt.Sprintf("%d", v.RatePerSec()),
 			v.max, v.min, v.Avg(), fmt.Sprintf("%v tps", v.TPS()))
 	}
 
 	log.INFO.Println("benchmark summary...\n" + table.Render())
+
+	ptable := termtables.CreateTable()
+	ptable.AddHeaders("Round", "50%", "60%", "70%", "80%", "90%", "95%", "97%", "99%")
+	for i, v := range testStats {
+		ptable.AddRow(i+1, v.Pct(50), v.Pct(60), v.Pct(70), v.Pct(80), v.Pct(90),
+			v.Pct(95), v.Pct(97), v.Pct(99))
+	}
+
+	log.INFO.Println("benchmark percentile summary...\n" + ptable.Render())
 }
 
 func Marshal(gStat []*LatencyStats) string {
@@ -67,6 +76,7 @@ func Marshal(gStat []*LatencyStats) string {
 		m["TotLat"] = v.dur
 		m["Begin"] = v.begin.UnixNano()
 		m["End"] = v.end.UnixNano()
+		m["Sendrate"] = v.RatePerSec()
 
 		ret = append(ret, m)
 	}

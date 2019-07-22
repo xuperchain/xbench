@@ -111,6 +111,7 @@ func BackendProf(conf *config.Config) {
 				tv[ii]["TotLat"] = tv[ii]["TotLat"].(float64) + vv["TotLat"].(float64)
 				tv[ii]["Begin"] = min(tv[ii]["Begin"].(float64), vv["Begin"].(float64))
 				tv[ii]["End"] = max(tv[ii]["End"].(float64), vv["End"].(float64))
+				tv[ii]["Sendrate"] = tv[ii]["Sendrate"].(float64) + vv["Sendrate"].(float64)
 			}
 		}
 	}
@@ -138,7 +139,7 @@ func BackendProf(conf *config.Config) {
 			Name:     v["Name"].(string),
 			Succ:     int(v["Succ"].(float64)),
 			Fail:     int(v["Fail"].(float64)),
-			SendRate: "TODO",
+			SendRate: v["Sendrate"].(string),
 			MaxLat:   time.Duration(v["MaxLat"].(float64)),
 			MinLat:   time.Duration(v["MinLat"].(float64)),
 			AvgLat:   time.Duration(v["AvgLat"].(float64)),

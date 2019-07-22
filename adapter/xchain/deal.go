@@ -1,8 +1,7 @@
 package xchain
 
 import (
-	"time"
-	"strconv"
+	"errors"
 	"sync"
 	"github.com/xuperchain/xuperbench/common"
 	"github.com/xuperchain/xuperbench/log"
@@ -16,19 +15,14 @@ type Deal struct {
 type ch chan *pb.TxStatus
 
 var (
-	testbank = &Acct{}
-	testaccts = map[int]*Acct{}
 	txstore = []ch{}
 	wg = sync.WaitGroup{}
 )
 
 func createtx(i int, batch int, chain string) {
 	for c:=0; c<batch; c++ {
-		tx, err := GenTx(testaccts[i], testbank.Address, chain, "1", "", "0")
-		if err != nil {
-			log.ERROR.Printf("genTx error: %#v", err)
-		}
-		if i == 0 && c % 500 == 0 {
+		tx := GenProfTx(Accts[i], Bank.Address, chain)
+		if i == 0 && c > 0 && c % 500 == 0 {
 			log.DEBUG.Printf("gen %d Tx", c)
 		}
 		txstore[i] <- tx
@@ -46,50 +40,36 @@ func (d Deal) Init(args ...interface{}) error {
 	} else {
 		amount = env.Duration * 75000
 	}
-	testbank = InitBankAcct()
-	testaccts = CreateTestClients(parallel, env.Host)
+	Bank = InitBankAcct()
+	Accts = CreateTestClients(parallel, env.Host)
 	txstore = make([]ch, parallel)
 	wg.Add(parallel)
 	for i, _ := range txstore {
 		txstore[i] = make(chan *pb.TxStatus, amount)
 	}
-	for i := range testaccts {
-		t, err := GenTx(testbank, testaccts[i].Address, env.Chain, strconv.Itoa(amount), "", "0")
-		if err != nil {
-			log.ERROR.Printf("init GenTx error: %#v", err)
-			return err
-		}
-		PostTx(t)
-	}
 	log.INFO.Printf("prepare tokens of test accounts ...")
-	time.Sleep(4 * time.Second)
-	lastx := ""
-	for j := range testaccts {
-		lastx, _ = SplitUTXO(testaccts[j], env.Chain, amount)
-	}
-	log.INFO.Printf("prepare utxos of test accounts ...")
-	for {
-		rsp := QueryTx(lastx, env.Chain)
-		if rsp.Status == 2 {
-			break
-		} else {
-			log.DEBUG.Printf("waiting for split (%s) ...", lastx)
-			time.Sleep(5 * time.Second)
+	for i := range Accts {
+		rsp, err := TransferSplit(Bank, Accts[i].Address, env.Chain, amount)
+		if rsp.Header.Error != 0 || err != nil {
+			log.ERROR.Printf("init token error: %#v", err)
+			return errors.New("init token error")
 		}
 	}
-	log.DEBUG.Printf("split done ...")
-	for k := range testaccts {
+	log.INFO.Printf("prepere tx of test accounts ...")
+	for k := range Accts {
 		go createtx(k, amount, env.Chain)
 	}
 	wg.Wait()
-	log.INFO.Printf("prepere tx of test accounts ...")
 	return nil
 }
 
 func (d Deal) Run(seq int, args ...interface{}) error {
 	tx := <-txstore[seq]
-	_, err := PostTx(tx)
-	return err
+	rsp, err := PostTx(tx)
+	if rsp.Header.Error != 0 || err != nil {
+		return errors.New("run posttx error")
+	}
+	return nil
 }
 
 func (d Deal) End(args ...interface{}) error {
