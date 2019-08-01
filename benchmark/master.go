@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"runtime"
 	"sync"
+	"strconv"
 	"time"
 	"github.com/xuperchain/xuperbench/common"
 	"github.com/xuperchain/xuperbench/config"
@@ -22,6 +23,9 @@ func BenchRun(conf *config.Config) {
 	benchMsgs := config.GetBenchMsgFromConf(conf)
 
 	log.INFO.Printf("begin to benchmark.....")
+	if conf.Mode == common.RemoteMode {
+		Set(conf, "worker")
+	}
 
 	gStat := make([]*monitor.LatencyStats, 0, len(benchMsgs))
 
@@ -35,6 +39,11 @@ func BenchRun(conf *config.Config) {
 
 		cb := testMsg.CB
 		cb.Init(parallel, testMsg.Env)
+
+		if conf.Mode == common.RemoteMode {
+			Set(conf, "rnd_" + strconv.Itoa(i))
+			Wait(conf, "rnd_" + strconv.Itoa(i))
+		}
 
 		wg := new(sync.WaitGroup)
 		wg.Add(parallel)
@@ -58,7 +67,8 @@ func BenchRun(conf *config.Config) {
 
 	monitor.PrintFormat(gStat)
 	if conf.Mode == common.RemoteMode {
-		tpsData := monitor.Marshal(gStat)
+		tpsData := monitor.Serialize(gStat)
+		//tpsData := monitor.Marshal(gStat)
 
 		var (
 			resUsage []byte

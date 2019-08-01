@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"os"
+	"runtime/pprof"
 	"github.com/xuperchain/xuperbench/benchmark"
-//	"github.com/xuperchain/xuperbench/behavmark"
+	//"github.com/xuperchain/xuperbench/behavmark"
 	"github.com/xuperchain/xuperbench/config"
 	"github.com/xuperchain/xuperbench/common"
 	"github.com/xuperchain/xuperbench/log"
@@ -12,18 +13,25 @@ import (
 
 var (
 	configFile string
+	ppf string
 	worker     bool
 	master     bool
 )
 
 func init() {
 	flag.StringVar(&configFile, "c", "demo.json", "test config file")
+	flag.StringVar(&ppf, "prof", "", "record profiling")
 	flag.BoolVar(&worker, "worker", false, "benchmark worker(client)")
 	flag.BoolVar(&master, "master", false, "benchmark master(send benchmsg to client)")
 	flag.Parse()
 }
 
 func main() {
+	if ppf != "" {
+		fd, _ := os.Create(ppf)
+		pprof.StartCPUProfile(fd)
+		defer pprof.StopCPUProfile()
+	}
 	conf := config.ParseConfig(configFile)
 	if conf == nil {
 		log.ERROR.Printf("encount err: get %v config", conf)

@@ -19,11 +19,11 @@ const (
 )
 
 var prefix = map[level]string{
-	DEBUG:   "DEBUG: ",
-	INFO:    "INFO:  ",
-	WARNING: "WARN:  ",
-	ERROR:   "ERROR: ",
-	FATAL:   "FATAL: ",
+	DEBUG:   "[DEBUG] ",
+	INFO:    "[INFO] ",
+	WARNING: "[WARN] ",
+	ERROR:   "[ERROR] ",
+	FATAL:   "[FATAL] ",
 }
 
 type Logger map[level]LoggerInterface
