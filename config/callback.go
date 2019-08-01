@@ -3,7 +3,7 @@ package config
 import (
 	"github.com/xuperchain/xuperbench/common"
 	"github.com/xuperchain/xuperbench/adapter/demo"
-	"github.com/xuperchain/xuperbench/adapter/xchain"
+	xchain "github.com/xuperchain/xuperbench/adapter/xchain/cases"
 )
 
 // SetCallBack set the callback while do bench test according to the TestCase info

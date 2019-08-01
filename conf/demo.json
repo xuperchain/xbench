@@ -9,8 +9,7 @@
         },
         {
             "label": "deal",
-            "number": [ 4000, 5000 ],
-            "duration": [2, 3]
+            "number": [ 40, 50 ]
         }
     ]
 }

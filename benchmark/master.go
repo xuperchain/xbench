@@ -67,7 +67,8 @@ func BenchRun(conf *config.Config) {
 
 	monitor.PrintFormat(gStat)
 	if conf.Mode == common.RemoteMode {
-		tpsData := monitor.Marshal(gStat)
+		tpsData := monitor.Serialize(gStat)
+		//tpsData := monitor.Marshal(gStat)
 
 		var (
 			resUsage []byte
