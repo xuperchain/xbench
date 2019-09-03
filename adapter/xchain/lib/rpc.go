@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"math/big"
-//	"io/ioutil"
 	"strconv"
 	"time"
 	"github.com/xuperchain/xuperbench/log"
@@ -13,7 +12,6 @@ import (
 	"github.com/xuperchain/xuperunion/utxo/txhash"
 	"github.com/xuperchain/xuperunion/crypto/client"
 	"google.golang.org/grpc"
-//	"github.com/golang/protobuf/proto"
 )
 
 var (
@@ -181,10 +179,10 @@ func FormatTxInput(tx *pb.Transaction, bcname string, from *Acct, name string) {
 	}
 }
 
-func FormatTxExt(tx *pb.Transaction, rsp *pb.InvokeResponse, req *pb.InvokeRequest) {
+func FormatTxExt(tx *pb.Transaction, rsp *pb.InvokeResponse, reqs []*pb.InvokeRequest) {
 	tx.TxInputsExt = rsp.GetInputs()
 	tx.TxOutputsExt = rsp.GetOutputs()
-	tx.ContractRequest = req
+	tx.ContractRequests = reqs
 }
 
 func SignTx(tx *pb.Transaction, from *Acct, name string, bcname string) *pb.TxStatus{
@@ -217,54 +215,36 @@ func PostTx(txstatus *pb.TxStatus) (*pb.CommonReply, error) {
 }
 
 func PreExec(args map[string][]byte, module string, method string, bcname string,
-	contract string) (*pb.InvokeResponse, *pb.InvokeRequest, error) {
+	contract string, auth string) (*pb.InvokeResponse, []*pb.InvokeRequest, error) {
 	req := &pb.InvokeRequest{
 		ModuleName: module,
 		MethodName: method,
 		Args: args,
 	}
+	reqs := []*pb.InvokeRequest{}
+	reqs = append(reqs, req)
 	if contract != "" && module != "xkernel" {
 		req.ContractName = contract
 	}
 	in := &pb.InvokeRPCRequest{
 		Bcname: bcname,
-		Request: req,
+		Requests: reqs,
 		Header: header(),
 	}
+	if auth != "" {
+		acctname, ok := args["account_name"]
+		authrequires := []string{}
+		if ok {
+			in.Initiator = string(acctname)
+			authrequires = append(authrequires, in.Initiator + "/" + auth)
+		} else {
+			in.Initiator = auth
+			authrequires = append(authrequires, auth)
+		}
+		in.AuthRequire = authrequires
+	}
 	out, err := cli.PreExec(context.Background(), in)
-	return out.GetResponse(), req, err
+	return out.GetResponse(), out.GetResponse().GetRequests(), err
 }
 
-// to new contract account
-//func GenPreExeRes(name string, addr string, chain string) (*pb.InvokeResponse,
-//	*pb.InvokeRequest, error) {
-//	args := make(map[string][]byte)
-//	args["account_name"] = []byte(name)
-//	acl := `{
-//		"pm": {
-//            "rule": 1,
-//            "acceptValue": 1.0
-//        },
-//        "aksWeight": {
-//            "` + addr + `": 1.0
-//        }
-//	}`
-//	args["acl"] = []byte(acl)
-//	return PreExec(args, "xkernel", "NewAccount", chain, "")
-//}
-//
-//func GenContractExeRes(initargs string, acctname string, contract string, code string,
-//	lang string, chain string) (*pb.InvokeResponse, *pb.InvokeRequest, error) {
-//	args := make(map[string][]byte)
-//	args["account_name"] = []byte(acctname)
-//	args["contract_name"] = []byte(contract)
-//	desc := &pb.WasmCodeDesc{
-//		Runtime: lang,
-//	}
-//	buf , _ := proto.Marshal(desc)
-//	args["contract_desc"] = buf
-//	codebuf, _ := ioutil.ReadFile(code)
-//	args["contract_code"] = codebuf
-//	args["init_args"] = []byte(initargs)
-//	return PreExec(args, "xkernel", "Deploy", chain, "")
-//}
+

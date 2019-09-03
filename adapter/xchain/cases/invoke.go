@@ -3,7 +3,7 @@ package cases
 import (
 	"fmt"
 	"errors"
-	"strings"
+//	"strings"
 	"github.com/xuperchain/xuperbench/adapter/xchain/lib"
 	"github.com/xuperchain/xuperbench/common"
 	"github.com/xuperchain/xuperbench/log"
@@ -32,7 +32,7 @@ func (i Invoke) Init(args ...interface{}) error {
 	lib.Transfer(Bank, account, env.Chain, "10000000")
 	log.INFO.Printf("check counter contract ...")
 	_, _, err := lib.QueryContract(Bank, contract, env.Chain, "get", "key_1")
-	if err != nil && !strings.Contains(err.Error(), "contract") {
+	if err != nil {
 		lib.DeployContract(Bank, contractpath, account, contract, env.Chain)
 	}
 	log.INFO.Printf("prepare done %s on %s", account, contract)
@@ -42,7 +42,8 @@ func (i Invoke) Init(args ...interface{}) error {
 func (i Invoke) Run(seq int, args ...interface{}) error {
 	k := fmt.Sprintf("key_%d", seq)
 	rsp, err := lib.InvokeContract(Bank, contract, "xuper", "increase", k)
-	if rsp.Header.Error != 0 || err != nil {
+	if err != nil || rsp.Header.Error != 0 {
+		log.ERROR.Printf("err on invoke %#v", rsp.Header)
 		return errors.New("invoke contract error")
 	}
 	return nil
