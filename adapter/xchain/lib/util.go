@@ -129,7 +129,6 @@ func DeployContract(from *Acct, code string, name string, contract string, bcnam
 	args["init_args"] = []byte(iarg)
 	rsp, req, err := PreExec(args, "xkernel", "Deploy", bcname, "", from.Address)
 	if err != nil {
-		log.ERROR.Printf("deploy err %#v", err)
 		return nil, err
 	}
 	tx := FormatTx(from.Address)
