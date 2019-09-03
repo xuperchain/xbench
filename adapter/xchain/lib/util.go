@@ -1,6 +1,7 @@
 package lib
 
 import (
+//	"fmt"
 	"os"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -104,7 +105,7 @@ func NewContractAcct(from *Acct, name string, bcname string) (*pb.CommonReply, e
         }
 	}`
 	args["acl"] = []byte(acl)
-	rsp, req, _ := PreExec(args, "xkernel", "NewAccount", bcname, "", "")
+	rsp, req, _ := PreExec(args, "xkernel", "NewAccount", bcname, "", from.Address)
 	tx := FormatTx(from.Address)
 	FormatTxOutput(tx, "$", strconv.FormatInt(rsp.GasUsed, 10), "0")
 	FormatTxInput(tx, bcname, from, from.Address)

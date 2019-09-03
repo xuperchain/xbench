@@ -234,11 +234,10 @@ func PreExec(args map[string][]byte, module string, method string, bcname string
 	if auth != "" {
 		acctname, ok := args["account_name"]
 		authrequires := []string{}
+		in.Initiator = auth
 		if ok {
-			in.Initiator = string(acctname)
-			authrequires = append(authrequires, in.Initiator + "/" + auth)
+			authrequires = append(authrequires, string(acctname) + "/" + auth)
 		} else {
-			in.Initiator = auth
 			authrequires = append(authrequires, auth)
 		}
 		in.AuthRequire = authrequires
