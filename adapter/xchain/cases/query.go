@@ -15,18 +15,22 @@ func (q Query) Init(args ...interface{}) error {
 	parallel := args[0].(int)
 	env := args[1].(common.TestEnv)
 	lib.Connect(env.Host)
-	//Accts = lib.CreateTestClients(parallel, env.Host)
 	for i:=0; i<parallel; i++ {
 		Accts[i], _ = lib.CreateAcct()
 	}
 	Bank = lib.InitBankAcct("")
+	lasttx := ""
 	log.INFO.Printf("prepare tokens of test accounts ...")
 	for i := range Accts {
-		rsp, err := lib.Transfer(Bank, Accts[i].Address, env.Chain, "10")
+		rsp, txid, err := lib.Transfer(Bank, Accts[i].Address, env.Chain, "10")
 		if rsp.Header.Error != 0 || err != nil {
 			log.ERROR.Printf("prepare tokens error: %#v, rsp: %#v", err, rsp)
 			return errors.New("init token error")
 		}
+		lasttx = txid
+	}
+	if !lib.WaitTx(10, lasttx, env.Chain) {
+		return errors.New("wait timeout")
 	}
 	return nil
 }

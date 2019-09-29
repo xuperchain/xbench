@@ -28,12 +28,18 @@ func (g Generate) Init(args ...interface{}) error {
 	}
 	//Accts = CreateTestClients(parallel, env.Host)
 	log.INFO.Printf("prepare tokens of test accounts ...")
+	lasttx := ""
 	for i := range Accts {
-		rsp, err := lib.TransferSplit(Bank, Accts[i].Address, env.Chain, amount)
+		rsp, txid, err := lib.TransferSplit(Bank, Accts[i].Address, env.Chain, amount)
 		if rsp.Header.Error != 0 || err != nil {
 			log.ERROR.Printf("prepare tokens error: %#v, rsp: %#v", err, rsp)
 			return errors.New("init token error")
 		}
+		lasttx = txid
+	}
+	// wait prepare done
+	if !lib.WaitTx(10, lasttx, env.Chain) {
+		return errors.New("wait timeout")
 	}
 	return nil
 }
@@ -41,9 +47,9 @@ func (g Generate) Init(args ...interface{}) error {
 // Run implements the comm.IcaseFace
 func (g Generate) Run(seq int, args ...interface{}) error {
 	env := args[0].(common.TestEnv)
-	rsp, err := lib.Transfer(Accts[seq], Bank.Address, env.Chain, "1")
+	rsp, txid, err := lib.Transfer(Accts[seq], Bank.Address, env.Chain, "1")
 	if rsp.Header.Error != 0 || err != nil {
-		log.ERROR.Printf("transfer error: %#v, rsp: %#v", err, rsp)
+		log.ERROR.Printf("transfer error: %#v, rsp: %#v, txidL %#v", err, rsp, txid)
 		return errors.New("transfer error")
 	}
 	return nil

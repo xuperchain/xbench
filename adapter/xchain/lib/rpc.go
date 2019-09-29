@@ -185,6 +185,22 @@ func FormatTxExt(tx *pb.Transaction, rsp *pb.InvokeResponse, reqs []*pb.InvokeRe
 	tx.ContractRequests = reqs
 }
 
+func FormatTxReserved(tx *pb.Transaction, from string, bcname string) {
+	authrequire := []string{}
+	authrequire = append(authrequire, from)
+	preExeRPCReq := &pb.InvokeRPCRequest{
+		Bcname:      bcname,
+		Requests:    []*pb.InvokeRequest{},
+		Header:      header(),
+		Initiator:   from,
+		AuthRequire: authrequire,
+	}
+	preExeRes, _ := cli.PreExec(context.Background(), preExeRPCReq)
+	tx.ContractRequests = preExeRes.GetResponse().GetRequests()
+	tx.TxInputsExt = preExeRes.GetResponse().GetInputs()
+	tx.TxOutputsExt = preExeRes.GetResponse().GetOutputs()
+}
+
 func SignTx(tx *pb.Transaction, from *Acct, name string, bcname string) *pb.TxStatus{
 	if name != "" {
 		tx.AuthRequire = append(tx.AuthRequire, name + "/" + from.Address)

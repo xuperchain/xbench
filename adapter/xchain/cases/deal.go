@@ -51,13 +51,19 @@ func (d Deal) Init(args ...interface{}) error {
 	for i, _ := range txstore {
 		txstore[i] = make(chan *pb.TxStatus, amount)
 	}
+	lasttx := ""
 	log.INFO.Printf("prepare tokens of test accounts ...")
 	for i := range Accts {
-		rsp, err := lib.TransferSplit(Bank, Accts[i].Address, env.Chain, amount)
+		rsp, txid, err := lib.TransferSplit(Bank, Accts[i].Address, env.Chain, amount)
 		if rsp.Header.Error != 0 || err != nil {
 			log.ERROR.Printf("init token error: %#v", err)
 			return errors.New("init token error")
 		}
+		lasttx = txid
+	}
+	// wait
+	if !lib.WaitTx(10, lasttx, env.Chain) {
+		return errors.New("wait timeout")
 	}
 	log.INFO.Printf("prepere tx of test accounts ...")
 	for k := range Accts {

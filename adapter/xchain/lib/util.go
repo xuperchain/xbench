@@ -1,8 +1,9 @@
 package lib
 
 import (
-//	"fmt"
+	"fmt"
 	"os"
+	"time"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -74,22 +75,39 @@ func GenProfTx(from *Acct, to string, bcname string) *pb.TxStatus {
 	return txs
 }
 
-func Transfer(from *Acct, to string, bcname string, amount string) (*pb.CommonReply, error) {
+func WaitTx(retry int, txid string, bcname string) bool {
+	for i := 0; i < retry; i++ {
+		status := QueryTx(txid, bcname)
+		if status.Status == 2 {
+			return true
+		}
+		time.Sleep(time.Duration(1) * time.Second)
+	}
+	return false
+}
+
+func Transfer(from *Acct, to string, bcname string, amount string) (*pb.CommonReply, string, error) {
 	tx := FormatTx(from.Address)
 	FormatTxOutput(tx, to, amount, "0")
 	FormatTxInput(tx, bcname, from, from.Address)
+	FormatTxReserved(tx, from.Address, bcname)
 	txs := SignTx(tx, from, from.Address, bcname)
-	return PostTx(txs)
+	txid := fmt.Sprintf("%x", txs.Txid)
+	rsp, err := PostTx(txs)
+	return rsp, txid, err
 }
 
-func TransferSplit(from *Acct, to string, bcname string, amount int) (*pb.CommonReply, error) {
+func TransferSplit(from *Acct, to string, bcname string, amount int) (*pb.CommonReply, string, error) {
 	tx := FormatTx(from.Address)
 	for i:=0; i<amount; i++ {
 		FormatTxOutput(tx, to, "1", "0")
 	}
 	FormatTxInput(tx, bcname, from, from.Address)
+	FormatTxReserved(tx, from.Address, bcname)
 	txs := SignTx(tx, from, from.Address, bcname)
-	return PostTx(txs)
+	txid := fmt.Sprintf("%x", txs.Txid)
+	rsp, err := PostTx(txs)
+	return rsp, txid, err
 }
 
 func NewContractAcct(from *Acct, name string, bcname string) (*pb.CommonReply, error) {

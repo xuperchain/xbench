@@ -84,7 +84,6 @@ func BenchRun(conf *config.Config) {
 			}
 		}
 
-		log.DEBUG.Printf("resource usage info: <%s>", resUsage)
 		RedisPush(conf, []string{tpsData, string(resUsage)})
 	} else {
 		tpsList := monitor.TpsSummary(gStat)

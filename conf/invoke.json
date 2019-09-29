@@ -1,0 +1,13 @@
+{
+    "type": "xchain",
+    "workNum": 10,
+    "mode": "local",
+	"chain": "xuper",
+	"host": "127.0.0.1:37101",
+    "rounds": [
+        {
+            "label": "invoke",
+            "number": [ 200, 200 ]
+        }
+    ]
+}

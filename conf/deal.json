@@ -2,12 +2,9 @@
     "type": "xchain",
     "workNum": 10,
     "mode": "local",
-	"host": "192.168.1.1:37101",
+	"chain": "xuper",
+	"host": "127.0.0.1:37101",
     "rounds": [
-		{
-			"label": "query",
-			"number": [ 200, 200 ]
-		},
         {
             "label": "deal",
             "number": [ 200, 200 ]
