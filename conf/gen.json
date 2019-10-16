@@ -2,8 +2,10 @@
     "type": "xchain",
     "workNum": 2,
     "mode": "local",
-	"host": "127.0.0.1:37101",
-	"chain": "xuper",
+    "chain": "xuper",
+    "crypto": "default",
+    "host": "127.0.0.1:37101",
+    "nodes": ["127.0.0.1:37101"],
     "rounds": [
         {
             "label": "generate",

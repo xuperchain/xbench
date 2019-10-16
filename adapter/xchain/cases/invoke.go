@@ -23,7 +23,7 @@ var (
 func (i Invoke) Init(args ...interface{}) error {
 	env := args[1].(common.TestEnv)
 	chainname = env.Chain
-	lib.Connect(env.Host)
+	lib.Connect(env.Host, env.Nodes, env.Crypto)
 	Bank = lib.InitBankAcct("")
 	log.INFO.Printf("check contract account ...")
 	account := fmt.Sprintf("XC%s@%s", acct, chainname)
@@ -33,7 +33,7 @@ func (i Invoke) Init(args ...interface{}) error {
 	}
 	lib.Transfer(Bank, account, env.Chain, "10000000")
 	log.INFO.Printf("check counter contract ...")
-	_, _, err := lib.QueryContract(Bank, contract, chainname, "get", "key_1")
+	_, _, err := lib.QueryContract(Bank, contract, chainname, "get", "key_0")
 	if err != nil {
 		lib.DeployContract(Bank, contractpath, account, contract, chainname)
 	}

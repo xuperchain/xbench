@@ -36,9 +36,11 @@ type Getter interface {
 
 type TestEnv struct {
 	Host string
+	Nodes []string
 	Batch int
 	Duration int
 	Chain string
+	Crypto string
 }
 
 // BenchMsg contains all the bench info while doing one bench test.

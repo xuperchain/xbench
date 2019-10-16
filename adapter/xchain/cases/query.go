@@ -14,9 +14,9 @@ type Query struct {
 func (q Query) Init(args ...interface{}) error {
 	parallel := args[0].(int)
 	env := args[1].(common.TestEnv)
-	lib.Connect(env.Host)
+	lib.Connect(env.Host, env.Nodes, env.Crypto)
 	for i:=0; i<parallel; i++ {
-		Accts[i], _ = lib.CreateAcct()
+		Accts[i], _ = lib.CreateAcct(env.Crypto)
 	}
 	Bank = lib.InitBankAcct("")
 	lasttx := ""
