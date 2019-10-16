@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"math/big"
+	"math/rand"
 	"strconv"
 	"time"
 	"github.com/xuperchain/xuperbench/log"
@@ -11,20 +12,36 @@ import (
 	"github.com/xuperchain/xuperunion/pb"
 	"github.com/xuperchain/xuperunion/utxo/txhash"
 	"github.com/xuperchain/xuperunion/crypto/client"
+	"github.com/xuperchain/xuperunion/crypto/hash"
 	"google.golang.org/grpc"
 )
 
 var (
 	conn *grpc.ClientConn
 	cli pb.XchainClient
+	ncli []pb.XchainClient
+	cryptotype string
 )
 
-func Connect(host string) {
+func Connect(host string, nodes []string, crypto string) {
+	rand.Seed(time.Now().Unix())
+	if crypto != "" {
+		cryptotype = crypto
+	} else {
+		cryptotype = "default"
+	}
 	opts := make([]grpc.DialOption, 0)
 	opts = append(opts, grpc.WithInsecure())
 	opts = append(opts, grpc.WithMaxMsgSize(64<<20-1))
 	conn, _ = grpc.Dial(host, opts...)
 	cli = pb.NewXchainClient(conn)
+	if len(nodes) > 0 {
+		ncli = make([]pb.XchainClient, 0, len(nodes))
+		for _, n := range nodes {
+			node_conn, _ := grpc.Dial(n, opts...)
+			ncli = append(ncli, pb.NewXchainClient(node_conn))
+		}
+	}
 }
 
 func header() *pb.Header {
@@ -201,13 +218,45 @@ func FormatTxReserved(tx *pb.Transaction, from string, bcname string) {
 	tx.TxOutputsExt = preExeRes.GetResponse().GetOutputs()
 }
 
+func FormatTxUtxoPreExec(tx *pb.Transaction, bcname string, from *Acct) {
+	total := big.NewInt(0)
+	for i := range(tx.TxOutputs) {
+		amt := big.NewInt(0).SetBytes(tx.TxOutputs[i].GetAmount())
+		total.Add(amt, total)
+	}
+	need, _ := strconv.ParseInt(total.String(), 10, 64)
+	out, _ := PreExecWithSelectUTXO(from, bcname, need)
+	tx.ContractRequests = out.GetResponse().GetRequests()
+	tx.TxInputsExt = out.GetResponse().GetInputs()
+	tx.TxOutputsExt = out.GetResponse().GetOutputs()
+	for _, utxo := range out.GetUtxoOutput().UtxoList {
+		txInput := &pb.TxInput{
+			RefTxid: utxo.RefTxid,
+			RefOffset: utxo.RefOffset,
+			FromAddr: utxo.ToAddr,
+			Amount: utxo.Amount,
+		}
+		tx.TxInputs = append(tx.TxInputs, txInput)
+	}
+	// fill charge
+	utxoTotal, _ := big.NewInt(0).SetString(out.GetUtxoOutput().TotalSelected, 10)
+	if utxoTotal.Cmp(total) > 0 {
+		delta := utxoTotal.Sub(utxoTotal, total)
+		txCharge := &pb.TxOutput{
+			ToAddr: []byte(from.Address),
+			Amount: delta.Bytes(),
+		}
+		tx.TxOutputs = append(tx.TxOutputs, txCharge)
+	}
+}
+
 func SignTx(tx *pb.Transaction, from *Acct, name string, bcname string) *pb.TxStatus{
 	if name != "" {
 		tx.AuthRequire = append(tx.AuthRequire, name + "/" + from.Address)
 	} else {
 		tx.AuthRequire = append(tx.AuthRequire, from.Address)
 	}
-	cryptoClient, _ := client.CreateCryptoClient("default")
+	cryptoClient, _ := client.CreateCryptoClient(cryptotype)
 	signTx, _ := txhash.ProcessSignTx(cryptoClient, tx, []byte(from.Pri))
 	signInfo := &pb.SignatureInfo{
 		PublicKey: from.Pub,
@@ -227,6 +276,30 @@ func SignTx(tx *pb.Transaction, from *Acct, name string, bcname string) *pb.TxSt
 
 func PostTx(txstatus *pb.TxStatus) (*pb.CommonReply, error) {
 	out, err := cli.PostTx(context.Background(), txstatus)
+	return out, err
+}
+
+func PreExecWithSelectUTXO(f *Acct, bcname string, need int64) (*pb.PreExecWithSelectUTXOResponse, error) {
+	content := hash.DoubleSha256([]byte(bcname + f.Address + strconv.FormatInt(need, 10) + "true"))
+	cryptoClient, _ := client.CreateCryptoClient(cryptotype)
+	pri, _ := cryptoClient.GetEcdsaPrivateKeyFromJSON([]byte(f.Pri))
+	sign, _ := cryptoClient.SignECDSA(pri, content)
+	signInfo := &pb.SignatureInfo{
+		PublicKey: f.Pub,
+		Sign: sign,
+	}
+	req := &pb.InvokeRPCRequest{}
+	in := &pb.PreExecWithSelectUTXORequest{
+		Header: header(),
+		Bcname: bcname,
+		Address: f.Address,
+		TotalAmount: need,
+		SignInfo: signInfo,
+		NeedLock: true,
+		Request: req,
+	}
+	nc := ncli[rand.Intn(len(ncli))]
+	out, err := nc.PreExecWithSelectUTXO(context.Background(), in)
 	return out, err
 }
 

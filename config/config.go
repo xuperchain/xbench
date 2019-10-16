@@ -16,7 +16,11 @@ type Config struct {
 
 	Host string `json:"host"`
 
+	Nodes []string `json:"nodes"`
+
 	Chain string `json:"chain"`
+
+	Crypto string `json:"crypto"`
 
 	// 压测模式，一共有两种模式
 	// local模式：master和worker在一台机器上；
@@ -57,6 +61,8 @@ func GetBenchMsgFromConf(conf *Config) []*common.BenchMsg {
 					Parallel: conf.WorkerNum,
 					Env: common.TestEnv{
 						Host: conf.Host,
+						Nodes: conf.Nodes,
+						Crypto: conf.Crypto,
 						Duration: v,
 						Chain: conf.Chain,
 					},
@@ -75,6 +81,8 @@ func GetBenchMsgFromConf(conf *Config) []*common.BenchMsg {
 					Parallel: conf.WorkerNum,
 					Env: common.TestEnv{
 						Host: conf.Host,
+						Nodes: conf.Nodes,
+						Crypto: conf.Crypto,
 						Batch: v,
 						Chain: conf.Chain,
 					},

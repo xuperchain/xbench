@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"encoding/base64"
 	"strconv"
+	"strings"
 	"github.com/xuperchain/xuperbench/log"
 	"github.com/xuperchain/xuperunion/pb"
 	"github.com/xuperchain/xuperunion/crypto/account"
@@ -48,8 +49,12 @@ func InitBankAcct(dir string) *Acct {
 	return acct
 }
 
-func CreateAcct() (*Acct, error) {
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+func CreateAcct(cryptotype string) (*Acct, error) {
+	curve := elliptic.P256()
+	if cryptotype == "schnorr" {
+		curve.Params().Name = "P-256-SN"
+	}
+	privateKey, err := ecdsa.GenerateKey(curve, rand.Reader)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +76,8 @@ func GenProfTx(from *Acct, to string, bcname string) *pb.TxStatus {
 	tx := FormatTx(from.Address)
 	FormatTxOutput(tx, to, "1", "0")
 	FormatTxInput(tx, bcname, from, from.Address)
-	txs := SignTx(tx, from, from.Address, bcname)
+	FormatTxReserved(tx, from.Address, bcname)
+	txs := SignTx(tx, from, "", bcname)
 	return txs
 }
 
@@ -91,7 +97,17 @@ func Transfer(from *Acct, to string, bcname string, amount string) (*pb.CommonRe
 	FormatTxOutput(tx, to, amount, "0")
 	FormatTxInput(tx, bcname, from, from.Address)
 	FormatTxReserved(tx, from.Address, bcname)
-	txs := SignTx(tx, from, from.Address, bcname)
+	txs := SignTx(tx, from, "", bcname)
+	txid := fmt.Sprintf("%x", txs.Txid)
+	rsp, err := PostTx(txs)
+	return rsp, txid, err
+}
+
+func Transfer2 (from *Acct, to string, bcname string, amount string) (*pb.CommonReply, string, error) {
+	tx := FormatTx(from.Address)
+	FormatTxOutput(tx, to, amount, "0")
+	FormatTxUtxoPreExec(tx, bcname, from)
+	txs := SignTx(tx, from, "", bcname)
 	txid := fmt.Sprintf("%x", txs.Txid)
 	rsp, err := PostTx(txs)
 	return rsp, txid, err
@@ -104,7 +120,7 @@ func TransferSplit(from *Acct, to string, bcname string, amount int) (*pb.Common
 	}
 	FormatTxInput(tx, bcname, from, from.Address)
 	FormatTxReserved(tx, from.Address, bcname)
-	txs := SignTx(tx, from, from.Address, bcname)
+	txs := SignTx(tx, from, "", bcname)
 	txid := fmt.Sprintf("%x", txs.Txid)
 	rsp, err := PostTx(txs)
 	return rsp, txid, err
@@ -177,4 +193,19 @@ func QueryContract(from *Acct, contract string, bcname string, method string, ke
 	args["key"] = []byte(key)
 	rsp, reqs, err := PreExec(args, "wasm", method, bcname, contract, "")
 	return rsp, reqs, err
+}
+
+func InitIdentity(from *Acct, bcname string, accts []string) (*pb.CommonReply, error) {
+	args := make(map[string][]byte)
+	args["aks"] = []byte(strings.Join(accts, ","))
+	rsp, req, err := PreExec(args, "wasm", "register_aks", bcname, "identity", from.Address)
+	if err != nil {
+		return nil, err
+	}
+	tx := FormatTx(from.Address)
+	FormatTxOutput(tx, "$", strconv.FormatInt(rsp.GasUsed, 10), "0")
+	FormatTxInput(tx, bcname, from, from.Address)
+	FormatTxExt(tx, rsp, req)
+	txs := SignTx(tx, from, "", bcname)
+	return PostTx(txs)
 }

@@ -34,7 +34,7 @@ func createtx(i int, batch int, chain string) {
 func (d Deal) Init(args ...interface{}) error {
 	parallel := args[0].(int)
 	env := args[1].(common.TestEnv)
-	lib.Connect(env.Host)
+	lib.Connect(env.Host, env.Nodes, env.Crypto)
 	amount := 0
 	if env.Batch != 0 {
 		amount = env.Batch
@@ -42,9 +42,12 @@ func (d Deal) Init(args ...interface{}) error {
 		amount = env.Duration * 75000
 	}
 	Bank = lib.InitBankAcct("")
+	addrs := []string{}
 	for i:=0; i<parallel; i++ {
-		Accts[i], _ = lib.CreateAcct()
+		Accts[i], _ = lib.CreateAcct(env.Crypto)
+		addrs = append(addrs, Accts[i].Address)
 	}
+	lib.InitIdentity(Bank, env.Chain, addrs)
 	//Accts = CreateTestClients(parallel, env.Host)
 	txstore = make([]ch, parallel)
 	wg.Add(parallel)

@@ -1,8 +1,11 @@
 {
-    "type": "demo",
+    "type": "xchain",
     "workNum": 5,
     "mode": "remote",
-	"host": "127.0.0.1:37101",
+    "chain": "xuper",
+    "crypto": "default",
+    "host": "127.0.0.1:37101",
+    "nodes": ["127.0.0.1:37101"],
     "broker":"127.0.0.1:6379",
     "resultBackend":"BackendChan",
     "pubSubChan":"PubSubChan",
