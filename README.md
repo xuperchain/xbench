@@ -37,4 +37,4 @@ Send pressure distributedly
 * Put the xbench binary into xuperunion path (of each endpoint)
 * Run `bin/xbench -worker -c conf/remote.conf` on worker endpoints
 * Run `bin/xbench -master -c conf/remote.conf` on master endpoint
-* You can edit the conf like gen/deal/invoke to profiling chosen process
+* You can edit the conf like gen/deal/invoke to test chosen process
