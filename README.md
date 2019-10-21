@@ -19,7 +19,13 @@ Send pressure with single endpoint
 * Prepare the environment of xuperunion
 * Edit the host address of benchmark config
 * Put the xbench binary into xuperunion path
-* Run `bin/xbench -c conf/local.conf`
+* Run `bin/xbench -c conf/gen.conf`
+
+config meanings:
+
+* gen.conf : profiling normal transfer process
+* deal.conf : prepare transaction data before, profiling postTx process
+* invoke.conf : profiling contract invoke process
 
 ### Remote mode
 
@@ -31,3 +37,4 @@ Send pressure distributedly
 * Put the xbench binary into xuperunion path (of each endpoint)
 * Run `bin/xbench -worker -c conf/remote.conf` on worker endpoints
 * Run `bin/xbench -master -c conf/remote.conf` on master endpoint
+* You can edit the conf like gen/deal/invoke to profiling chosen process
