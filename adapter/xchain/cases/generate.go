@@ -29,7 +29,6 @@ func (g Generate) Init(args ...interface{}) error {
 		addrs = append(addrs, Accts[i].Address)
 	}
 	lib.InitIdentity(Bank, env.Chain, addrs)
-	//Accts = CreateTestClients(parallel, env.Host)
 	log.INFO.Printf("prepare tokens of test accounts ...")
 	lasttx := ""
 	for i := range Accts {

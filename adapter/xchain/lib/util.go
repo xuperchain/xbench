@@ -103,7 +103,7 @@ func Transfer(from *Acct, to string, bcname string, amount string) (*pb.CommonRe
 	return rsp, txid, err
 }
 
-func Transfer2 (from *Acct, to string, bcname string, amount string) (*pb.CommonReply, string, error) {
+func Transfer2(from *Acct, to string, bcname string, amount string) (*pb.CommonReply, string, error) {
 	tx := FormatTx(from.Address)
 	FormatTxOutput(tx, to, amount, "0")
 	FormatTxUtxoPreExec(tx, bcname, from)
@@ -198,7 +198,7 @@ func QueryContract(from *Acct, contract string, bcname string, method string, ke
 func InitIdentity(from *Acct, bcname string, accts []string) (*pb.CommonReply, error) {
 	args := make(map[string][]byte)
 	args["aks"] = []byte(strings.Join(accts, ","))
-	rsp, req, err := PreExec(args, "wasm", "register_aks", bcname, "identity", from.Address)
+	rsp, req, err := PreExec(args, "wasm", "register_aks", bcname, "unified_check", from.Address)
 	if err != nil {
 		return nil, err
 	}

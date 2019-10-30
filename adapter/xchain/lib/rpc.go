@@ -288,7 +288,14 @@ func PreExecWithSelectUTXO(f *Acct, bcname string, need int64) (*pb.PreExecWithS
 		PublicKey: f.Pub,
 		Sign: sign,
 	}
-	req := &pb.InvokeRPCRequest{}
+	authrequires := []string{f.Address}
+	req := &pb.InvokeRPCRequest{
+		Header: header(),
+		Bcname: bcname,
+		Requests: []*pb.InvokeRequest{},
+		Initiator: f.Address,
+		AuthRequire: authrequires,
+	}
 	in := &pb.PreExecWithSelectUTXORequest{
 		Header: header(),
 		Bcname: bcname,
@@ -331,7 +338,8 @@ func PreExec(args map[string][]byte, module string, method string, bcname string
 		}
 		in.AuthRequire = authrequires
 	}
-	out, err := cli.PreExec(context.Background(), in)
+	nc := ncli[rand.Intn(len(ncli))]
+	out, err := nc.PreExec(context.Background(), in)
 	return out.GetResponse(), out.GetResponse().GetRequests(), err
 }
 
