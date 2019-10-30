@@ -34,7 +34,7 @@ func createtx(i int, batch int, chain string) {
 func (d Deal) Init(args ...interface{}) error {
 	parallel := args[0].(int)
 	env := args[1].(common.TestEnv)
-	lib.Connect(env.Host)
+	lib.Connect(env.Host, env.Nodes, env.Crypto)
 	amount := 0
 	if env.Batch != 0 {
 		amount = env.Batch
@@ -42,22 +42,30 @@ func (d Deal) Init(args ...interface{}) error {
 		amount = env.Duration * 75000
 	}
 	Bank = lib.InitBankAcct("")
+	addrs := []string{}
 	for i:=0; i<parallel; i++ {
-		Accts[i], _ = lib.CreateAcct()
+		Accts[i], _ = lib.CreateAcct(env.Crypto)
+		addrs = append(addrs, Accts[i].Address)
 	}
-	//Accts = CreateTestClients(parallel, env.Host)
+	lib.InitIdentity(Bank, env.Chain, addrs)
 	txstore = make([]ch, parallel)
 	wg.Add(parallel)
 	for i, _ := range txstore {
 		txstore[i] = make(chan *pb.TxStatus, amount)
 	}
+	lasttx := ""
 	log.INFO.Printf("prepare tokens of test accounts ...")
 	for i := range Accts {
-		rsp, err := lib.TransferSplit(Bank, Accts[i].Address, env.Chain, amount)
+		rsp, txid, err := lib.TransferSplit(Bank, Accts[i].Address, env.Chain, amount)
 		if rsp.Header.Error != 0 || err != nil {
 			log.ERROR.Printf("init token error: %#v", err)
 			return errors.New("init token error")
 		}
+		lasttx = txid
+	}
+	// wait
+	if !lib.WaitTx(10, lasttx, env.Chain) {
+		return errors.New("wait timeout")
 	}
 	log.INFO.Printf("prepere tx of test accounts ...")
 	for k := range Accts {

@@ -118,7 +118,6 @@ func BackendProf(conf *config.Config) {
 		var monInfo monitor.MonInfo
 		json.Unmarshal([]byte(v), &monInfo)
 
-		log.DEBUG.Printf("%#v", monInfo)
 		resUsageList = append(resUsageList, monInfo)
 	}
 	monitor.PrintFormat(tv)

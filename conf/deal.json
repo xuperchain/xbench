@@ -1,6 +1,6 @@
 {
     "type": "xchain",
-    "workNum": 2,
+    "workNum": 10,
     "mode": "local",
     "chain": "xuper",
     "crypto": "default",
@@ -8,8 +8,8 @@
     "nodes": ["127.0.0.1:37101"],
     "rounds": [
         {
-            "label": "generate",
-            "number": [ 10 ]
+            "label": "deal",
+            "number": [ 20 ]
         }
     ]
 }

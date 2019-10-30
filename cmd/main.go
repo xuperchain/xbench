@@ -5,7 +5,6 @@ import (
 	"os"
 	"runtime/pprof"
 	"github.com/xuperchain/xuperbench/benchmark"
-	//"github.com/xuperchain/xuperbench/behavmark"
 	"github.com/xuperchain/xuperbench/config"
 	"github.com/xuperchain/xuperbench/common"
 	"github.com/xuperchain/xuperbench/log"

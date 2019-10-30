@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"math/big"
-//	"io/ioutil"
+	"math/rand"
 	"strconv"
 	"time"
 	"github.com/xuperchain/xuperbench/log"
@@ -12,21 +12,36 @@ import (
 	"github.com/xuperchain/xuperunion/pb"
 	"github.com/xuperchain/xuperunion/utxo/txhash"
 	"github.com/xuperchain/xuperunion/crypto/client"
+	"github.com/xuperchain/xuperunion/crypto/hash"
 	"google.golang.org/grpc"
-//	"github.com/golang/protobuf/proto"
 )
 
 var (
 	conn *grpc.ClientConn
 	cli pb.XchainClient
+	ncli []pb.XchainClient
+	cryptotype string
 )
 
-func Connect(host string) {
+func Connect(host string, nodes []string, crypto string) {
+	rand.Seed(time.Now().Unix())
+	if crypto != "" {
+		cryptotype = crypto
+	} else {
+		cryptotype = "default"
+	}
 	opts := make([]grpc.DialOption, 0)
 	opts = append(opts, grpc.WithInsecure())
 	opts = append(opts, grpc.WithMaxMsgSize(64<<20-1))
 	conn, _ = grpc.Dial(host, opts...)
 	cli = pb.NewXchainClient(conn)
+	if len(nodes) > 0 {
+		ncli = make([]pb.XchainClient, 0, len(nodes))
+		for _, n := range nodes {
+			node_conn, _ := grpc.Dial(n, opts...)
+			ncli = append(ncli, pb.NewXchainClient(node_conn))
+		}
+	}
 }
 
 func header() *pb.Header {
@@ -181,10 +196,58 @@ func FormatTxInput(tx *pb.Transaction, bcname string, from *Acct, name string) {
 	}
 }
 
-func FormatTxExt(tx *pb.Transaction, rsp *pb.InvokeResponse, req *pb.InvokeRequest) {
+func FormatTxExt(tx *pb.Transaction, rsp *pb.InvokeResponse, reqs []*pb.InvokeRequest) {
 	tx.TxInputsExt = rsp.GetInputs()
 	tx.TxOutputsExt = rsp.GetOutputs()
-	tx.ContractRequest = req
+	tx.ContractRequests = reqs
+}
+
+func FormatTxReserved(tx *pb.Transaction, from string, bcname string) {
+	authrequire := []string{}
+	authrequire = append(authrequire, from)
+	preExeRPCReq := &pb.InvokeRPCRequest{
+		Bcname:      bcname,
+		Requests:    []*pb.InvokeRequest{},
+		Header:      header(),
+		Initiator:   from,
+		AuthRequire: authrequire,
+	}
+	preExeRes, _ := cli.PreExec(context.Background(), preExeRPCReq)
+	tx.ContractRequests = preExeRes.GetResponse().GetRequests()
+	tx.TxInputsExt = preExeRes.GetResponse().GetInputs()
+	tx.TxOutputsExt = preExeRes.GetResponse().GetOutputs()
+}
+
+func FormatTxUtxoPreExec(tx *pb.Transaction, bcname string, from *Acct) {
+	total := big.NewInt(0)
+	for i := range(tx.TxOutputs) {
+		amt := big.NewInt(0).SetBytes(tx.TxOutputs[i].GetAmount())
+		total.Add(amt, total)
+	}
+	need, _ := strconv.ParseInt(total.String(), 10, 64)
+	out, _ := PreExecWithSelectUTXO(from, bcname, need)
+	tx.ContractRequests = out.GetResponse().GetRequests()
+	tx.TxInputsExt = out.GetResponse().GetInputs()
+	tx.TxOutputsExt = out.GetResponse().GetOutputs()
+	for _, utxo := range out.GetUtxoOutput().UtxoList {
+		txInput := &pb.TxInput{
+			RefTxid: utxo.RefTxid,
+			RefOffset: utxo.RefOffset,
+			FromAddr: utxo.ToAddr,
+			Amount: utxo.Amount,
+		}
+		tx.TxInputs = append(tx.TxInputs, txInput)
+	}
+	// fill charge
+	utxoTotal, _ := big.NewInt(0).SetString(out.GetUtxoOutput().TotalSelected, 10)
+	if utxoTotal.Cmp(total) > 0 {
+		delta := utxoTotal.Sub(utxoTotal, total)
+		txCharge := &pb.TxOutput{
+			ToAddr: []byte(from.Address),
+			Amount: delta.Bytes(),
+		}
+		tx.TxOutputs = append(tx.TxOutputs, txCharge)
+	}
 }
 
 func SignTx(tx *pb.Transaction, from *Acct, name string, bcname string) *pb.TxStatus{
@@ -193,7 +256,7 @@ func SignTx(tx *pb.Transaction, from *Acct, name string, bcname string) *pb.TxSt
 	} else {
 		tx.AuthRequire = append(tx.AuthRequire, from.Address)
 	}
-	cryptoClient, _ := client.CreateCryptoClient("default")
+	cryptoClient, _ := client.CreateCryptoClient(cryptotype)
 	signTx, _ := txhash.ProcessSignTx(cryptoClient, tx, []byte(from.Pri))
 	signInfo := &pb.SignatureInfo{
 		PublicKey: from.Pub,
@@ -216,55 +279,68 @@ func PostTx(txstatus *pb.TxStatus) (*pb.CommonReply, error) {
 	return out, err
 }
 
+func PreExecWithSelectUTXO(f *Acct, bcname string, need int64) (*pb.PreExecWithSelectUTXOResponse, error) {
+	content := hash.DoubleSha256([]byte(bcname + f.Address + strconv.FormatInt(need, 10) + "true"))
+	cryptoClient, _ := client.CreateCryptoClient(cryptotype)
+	pri, _ := cryptoClient.GetEcdsaPrivateKeyFromJSON([]byte(f.Pri))
+	sign, _ := cryptoClient.SignECDSA(pri, content)
+	signInfo := &pb.SignatureInfo{
+		PublicKey: f.Pub,
+		Sign: sign,
+	}
+	authrequires := []string{f.Address}
+	req := &pb.InvokeRPCRequest{
+		Header: header(),
+		Bcname: bcname,
+		Requests: []*pb.InvokeRequest{},
+		Initiator: f.Address,
+		AuthRequire: authrequires,
+	}
+	in := &pb.PreExecWithSelectUTXORequest{
+		Header: header(),
+		Bcname: bcname,
+		Address: f.Address,
+		TotalAmount: need,
+		SignInfo: signInfo,
+		NeedLock: true,
+		Request: req,
+	}
+	nc := ncli[rand.Intn(len(ncli))]
+	out, err := nc.PreExecWithSelectUTXO(context.Background(), in)
+	return out, err
+}
+
 func PreExec(args map[string][]byte, module string, method string, bcname string,
-	contract string) (*pb.InvokeResponse, *pb.InvokeRequest, error) {
+	contract string, auth string) (*pb.InvokeResponse, []*pb.InvokeRequest, error) {
 	req := &pb.InvokeRequest{
 		ModuleName: module,
 		MethodName: method,
 		Args: args,
 	}
+	reqs := []*pb.InvokeRequest{}
+	reqs = append(reqs, req)
 	if contract != "" && module != "xkernel" {
 		req.ContractName = contract
 	}
 	in := &pb.InvokeRPCRequest{
 		Bcname: bcname,
-		Request: req,
+		Requests: reqs,
 		Header: header(),
 	}
-	out, err := cli.PreExec(context.Background(), in)
-	return out.GetResponse(), req, err
+	if auth != "" {
+		acctname, ok := args["account_name"]
+		authrequires := []string{}
+		in.Initiator = auth
+		if ok {
+			authrequires = append(authrequires, string(acctname) + "/" + auth)
+		} else {
+			authrequires = append(authrequires, auth)
+		}
+		in.AuthRequire = authrequires
+	}
+	nc := ncli[rand.Intn(len(ncli))]
+	out, err := nc.PreExec(context.Background(), in)
+	return out.GetResponse(), out.GetResponse().GetRequests(), err
 }
 
-// to new contract account
-//func GenPreExeRes(name string, addr string, chain string) (*pb.InvokeResponse,
-//	*pb.InvokeRequest, error) {
-//	args := make(map[string][]byte)
-//	args["account_name"] = []byte(name)
-//	acl := `{
-//		"pm": {
-//            "rule": 1,
-//            "acceptValue": 1.0
-//        },
-//        "aksWeight": {
-//            "` + addr + `": 1.0
-//        }
-//	}`
-//	args["acl"] = []byte(acl)
-//	return PreExec(args, "xkernel", "NewAccount", chain, "")
-//}
-//
-//func GenContractExeRes(initargs string, acctname string, contract string, code string,
-//	lang string, chain string) (*pb.InvokeResponse, *pb.InvokeRequest, error) {
-//	args := make(map[string][]byte)
-//	args["account_name"] = []byte(acctname)
-//	args["contract_name"] = []byte(contract)
-//	desc := &pb.WasmCodeDesc{
-//		Runtime: lang,
-//	}
-//	buf , _ := proto.Marshal(desc)
-//	args["contract_desc"] = buf
-//	codebuf, _ := ioutil.ReadFile(code)
-//	args["contract_code"] = codebuf
-//	args["init_args"] = []byte(initargs)
-//	return PreExec(args, "xkernel", "Deploy", chain, "")
-//}
+
