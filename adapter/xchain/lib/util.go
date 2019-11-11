@@ -7,6 +7,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"math/big"
 	"io/ioutil"
 	"path/filepath"
 	"encoding/base64"
@@ -72,61 +73,36 @@ func CreateAcct(cryptotype string) (*Acct, error) {
 	return acct, nil
 }
 
-func GenProfTx(from *Acct, to string, bcname string) *pb.TxStatus {
+func ProfTx(from *Acct, to string, cli *Client) *pb.TxStatus {
 	tx := FormatTx(from.Address)
-	FormatTxOutput(tx, to, "1", "0")
-	FormatTxInput(tx, bcname, from, from.Address)
-	FormatTxReserved(tx, from.Address, bcname)
-	txs := SignTx(tx, from, "", bcname)
-	return txs
+	out, _ := cli.PreExecWithSelectUTXO(from, 1)
+	FormatOutput(tx, to, "1", "0")
+	FormatInputPreExec(tx, from, out)
+	return cli.SignTx(tx, from, "")
 }
 
-func WaitTx(retry int, txid string, bcname string) bool {
-	for i := 0; i < retry; i++ {
-		status := QueryTx(txid, bcname)
-		if status.Status == 2 {
-			return true
-		}
-		time.Sleep(time.Duration(1) * time.Second)
+func Transplit(from *Acct, to string, amount int, cli *Client) (*pb.CommonReply, error) {
+	tx := FormatTx(from.Address)
+	out, _ := cli.PreExecWithSelectUTXO(from, int64(amount))
+	for i:=0; i<=amount-1; i++ {
+		FormatOutput(tx, to, "1", "0")
 	}
-	return false
+	FormatInputPreExec(tx, from, out)
+	txs := cli.SignTx(tx, from, "")
+	return cli.PostTx(txs)
 }
 
-func Transfer(from *Acct, to string, bcname string, amount string) (*pb.CommonReply, string, error) {
+func Trans(from *Acct, to string, amount string, cli *Client) (*pb.CommonReply, error) {
 	tx := FormatTx(from.Address)
-	FormatTxOutput(tx, to, amount, "0")
-	FormatTxInput(tx, bcname, from, from.Address)
-	FormatTxReserved(tx, from.Address, bcname)
-	txs := SignTx(tx, from, "", bcname)
-	txid := fmt.Sprintf("%x", txs.Txid)
-	rsp, err := PostTx(txs)
-	return rsp, txid, err
+	need, _ := strconv.Atoi(amount)
+	out, _ := cli.PreExecWithSelectUTXO(from, int64(need))
+	FormatOutput(tx, to, amount, "0")
+	FormatInputPreExec(tx, from, out)
+	txs := cli.SignTx(tx, from, "")
+	return cli.PostTx(txs)
 }
 
-func Transfer2(from *Acct, to string, bcname string, amount string) (*pb.CommonReply, string, error) {
-	tx := FormatTx(from.Address)
-	FormatTxOutput(tx, to, amount, "0")
-	FormatTxUtxoPreExec(tx, bcname, from)
-	txs := SignTx(tx, from, "", bcname)
-	txid := fmt.Sprintf("%x", txs.Txid)
-	rsp, err := PostTx(txs)
-	return rsp, txid, err
-}
-
-func TransferSplit(from *Acct, to string, bcname string, amount int) (*pb.CommonReply, string, error) {
-	tx := FormatTx(from.Address)
-	for i:=0; i<amount; i++ {
-		FormatTxOutput(tx, to, "1", "0")
-	}
-	FormatTxInput(tx, bcname, from, from.Address)
-	FormatTxReserved(tx, from.Address, bcname)
-	txs := SignTx(tx, from, "", bcname)
-	txid := fmt.Sprintf("%x", txs.Txid)
-	rsp, err := PostTx(txs)
-	return rsp, txid, err
-}
-
-func NewContractAcct(from *Acct, name string, bcname string) (*pb.CommonReply, error) {
+func NewContractAcct(from *Acct, name string, cli *Client) (*pb.CommonReply, error) {
 	args := make(map[string][]byte)
 	args["account_name"] = []byte(name)
 	acl := `{
@@ -139,16 +115,15 @@ func NewContractAcct(from *Acct, name string, bcname string) (*pb.CommonReply, e
         }
 	}`
 	args["acl"] = []byte(acl)
-	rsp, req, _ := PreExec(args, "xkernel", "NewAccount", bcname, "", from.Address)
+	out, _ := cli.PreExecWithSelectUTXOContract(from, args, "xkernel", "NewAccount", "")
 	tx := FormatTx(from.Address)
-	FormatTxOutput(tx, "$", strconv.FormatInt(rsp.GasUsed, 10), "0")
-	FormatTxInput(tx, bcname, from, from.Address)
-	FormatTxExt(tx, rsp, req)
-	txs := SignTx(tx, from, "", bcname)
-	return PostTx(txs)
+	FormatOutput(tx, from.Address, "0", "0")
+	FormatInputPreExec(tx, from, out)
+	txs := cli.SignTx(tx, from, name)
+	return cli.PostTx(txs)
 }
 
-func DeployContract(from *Acct, code string, name string, contract string, bcname string) (*pb.CommonReply, error) {
+func DeployContract(from *Acct, code string, name string, contract string, cli *Client) (*pb.CommonReply, error) {
 	args := make(map[string][]byte)
 	args["account_name"] = []byte(name)
 	args["contract_name"] = []byte(contract)
@@ -161,51 +136,101 @@ func DeployContract(from *Acct, code string, name string, contract string, bcnam
 	args["contract_code"] = source
 	iarg := `{"creator":"` + base64.StdEncoding.EncodeToString([]byte("xchain")) + `"}`
 	args["init_args"] = []byte(iarg)
-	rsp, req, err := PreExec(args, "xkernel", "Deploy", bcname, "", from.Address)
-	if err != nil {
-		return nil, err
-	}
+	out, ee := cli.PreExecWithSelectUTXOContract(from, args, "xkernel", "Deploy", "")
+	fmt.Printf("BBB %#v\n", out)
+	fmt.Printf("BBB %#v\n", ee)
 	tx := FormatTx(from.Address)
-	FormatTxOutput(tx, "$", strconv.FormatInt(rsp.GasUsed, 10), "0")
-	FormatTxInput(tx, bcname, from, name)
-	FormatTxExt(tx, rsp, req)
-	txs := SignTx(tx, from, name, bcname)
-	return PostTx(txs)
+	FormatInputPreExec(tx, from, out)
+	txs := cli.SignTx(tx, from, name)
+	return cli.PostTx(txs)
 }
 
-func InvokeContract(from *Acct, contract string, bcname string, method string, key string) (*pb.CommonReply, error) {
+func InvokeContract(from *Acct, contract string, method string, key string, cli *Client) (*pb.CommonReply, error) {
 	args := make(map[string][]byte)
 	args["key"] = []byte(key)
-	rsp, req, err := PreExec(args, "wasm", method, bcname, contract, from.Address)
-	if err != nil {
-		return nil, err
-	}
+	out, _ := cli.PreExecWithSelectUTXOContract(from, args, "wasm", method, contract)
 	tx := FormatTx(from.Address)
-	FormatTxOutput(tx, "$", strconv.FormatInt(rsp.GasUsed, 10), "0")
-	FormatTxInput(tx, bcname, from, from.Address)
-	FormatTxExt(tx, rsp, req)
-	txs := SignTx(tx, from, "", bcname)
-	return PostTx(txs)
+	FormatInputPreExec(tx, from, out)
+	txs := cli.SignTx(tx, from, "")
+	return cli.PostTx(txs)
 }
 
-func QueryContract(from *Acct, contract string, bcname string, method string, key string) (*pb.InvokeResponse, []*pb.InvokeRequest, error) {
-	args := make(map[string][]byte)
-	args["key"] = []byte(key)
-	rsp, reqs, err := PreExec(args, "wasm", method, bcname, contract, "")
-	return rsp, reqs, err
-}
-
-func InitIdentity(from *Acct, bcname string, accts []string) (*pb.CommonReply, error) {
+func InitIdentity(from *Acct, accts []string, cli *Client) (*pb.CommonReply, error) {
 	args := make(map[string][]byte)
 	args["aks"] = []byte(strings.Join(accts, ","))
-	rsp, req, err := PreExec(args, "wasm", "register_aks", bcname, "unified_check", from.Address)
-	if err != nil {
-		return nil, err
-	}
+	out, _ := cli.PreExecWithSelectUTXOContract(from, args, "wasm", "register_aks", "unified_check")
 	tx := FormatTx(from.Address)
-	FormatTxOutput(tx, "$", strconv.FormatInt(rsp.GasUsed, 10), "0")
-	FormatTxInput(tx, bcname, from, from.Address)
-	FormatTxExt(tx, rsp, req)
-	txs := SignTx(tx, from, "", bcname)
-	return PostTx(txs)
+	FormatInputPreExec(tx, from, out)
+	txs := cli.SignTx(tx, from, "")
+	return cli.PostTx(txs)
+}
+
+func QueryContract(from *Acct, contract string, method string, key string, cli *Client) (*pb.InvokeResponse, []*pb.InvokeRequest, error) {
+	args := make(map[string][]byte)
+	args["key"] = []byte(key)
+	return cli.PreExec(args, "wasm", method, contract, from.Address)
+}
+
+func FormatTx(from string) *pb.Transaction {
+	return &pb.Transaction{
+		Version: 1,
+		Coinbase: false,
+		Desc: []byte(""),
+		Nonce: nonce(),
+		Timestamp: time.Now().UnixNano(),
+		Initiator: from,
+	}
+}
+
+func FormatOutput(tx *pb.Transaction, to string, amount string, frozen string) {
+	amt, _ := big.NewInt(0).SetString(amount, 10)
+	txout := &pb.TxOutput{
+		ToAddr: []byte(to),
+		Amount: amt.Bytes(),
+	}
+	if frozen != "0" {
+		frz, _ := strconv.ParseInt(frozen, 10, 64)
+		txout.FrozenHeight = frz
+	}
+	tx.TxOutputs = append(tx.TxOutputs, txout)
+}
+
+func FormatInputPreExec(tx *pb.Transaction, from *Acct, rsp *pb.PreExecWithSelectUTXOResponse) {
+	total := big.NewInt(0)
+	for i := range(tx.TxOutputs) {
+		amt := big.NewInt(0).SetBytes(tx.TxOutputs[i].GetAmount())
+		total.Add(amt, total)
+	}
+	tx.ContractRequests = rsp.GetResponse().GetRequests()
+	tx.TxInputsExt = rsp.GetResponse().GetInputs()
+	tx.TxOutputsExt = rsp.GetResponse().GetOutputs()
+	if rsp.GetResponse().GetGasUsed() > 0 {
+		amt := big.NewInt(rsp.GetResponse().GetGasUsed())
+		total.Add(amt, total)
+		txFee := &pb.TxOutput{
+			ToAddr: []byte("$"),
+			Amount: amt.Bytes(),
+		}
+		tx.TxOutputs = append(tx.TxOutputs, txFee)
+	}
+	if total.Sign() > 0 {
+		for _, utxo := range rsp.GetUtxoOutput().UtxoList {
+			txInput := &pb.TxInput{
+				RefTxid: utxo.RefTxid,
+				RefOffset: utxo.RefOffset,
+				FromAddr: utxo.ToAddr,
+				Amount: utxo.Amount,
+			}
+			tx.TxInputs = append(tx.TxInputs, txInput)
+		}
+		utxoTotal, _ := big.NewInt(0).SetString(rsp.GetUtxoOutput().TotalSelected, 10)
+		if utxoTotal.Cmp(total) > 0 {
+			delta := utxoTotal.Sub(utxoTotal, total)
+			txCharge := &pb.TxOutput{
+				ToAddr: []byte(from.Address),
+				Amount: delta.Bytes(),
+			}
+			tx.TxOutputs = append(tx.TxOutputs, txCharge)
+		}
+	}
 }
