@@ -8,6 +8,7 @@ import (
 var (
 	Bank = &lib.Acct{}
 	Accts = map[int]*lib.Acct{}
+	Clis = []*lib.Client{}
 )
 
 // New return the xchain testcase
@@ -36,6 +37,13 @@ func New(label common.CaseType) common.ICaseFace {
 		}
 	case common.Invoke:
 		return &Invoke{
+			common.TestCase{
+				BCType: common.Xchain,
+				Label:  label,
+			},
+		}
+	case common.Relay:
+		return &Relay{
 			common.TestCase{
 				BCType: common.Xchain,
 				Label:  label,
