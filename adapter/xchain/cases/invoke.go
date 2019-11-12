@@ -50,7 +50,7 @@ func (i Invoke) Init(args ...interface{}) error {
 
 func (i Invoke) Run(seq int, args ...interface{}) error {
 	k := fmt.Sprintf("key_%d", seq)
-	rsp, err := lib.InvokeContract(Bank, contract, "increase", k, Clis[seq])
+	rsp, _, err := lib.InvokeContract(Bank, contract, "increase", k, Clis[seq])
 	if err != nil || rsp.Header.Error != 0 {
 		log.ERROR.Printf("err on invoke %#v", rsp.Header)
 		return errors.New("invoke contract error")
