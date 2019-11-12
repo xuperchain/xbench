@@ -166,8 +166,10 @@ func (cli *Client) SignTx(tx *pb.Transaction, from *Acct, account string) *pb.Tx
 	}
 }
 
-func (cli *Client) PostTx(txstatus *pb.TxStatus) (*pb.CommonReply, error) {
-	return cli.Conn.PostTx(context.Background(), txstatus)
+func (cli *Client) PostTx(txstatus *pb.TxStatus) (*pb.CommonReply, string, error) {
+	rsp, err := cli.Conn.PostTx(context.Background(), txstatus)
+	txid := hex.EncodeToString(txstatus.Txid)
+	return rsp, txid, err
 }
 
 func (cli *Client) PreExecWithSelectUTXO(acct *Acct, need int64) (*pb.PreExecWithSelectUTXOResponse, error) {

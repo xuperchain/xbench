@@ -12,14 +12,16 @@ import (
 
 var (
 	configFile string
-	ppf string
+	ppf        string
 	worker     bool
 	master     bool
+	split      bool
 )
 
 func init() {
 	flag.StringVar(&configFile, "c", "demo.json", "test config file")
 	flag.StringVar(&ppf, "prof", "", "record profiling")
+	flag.BoolVar(&split, "s", false, "need utxo-split")
 	flag.BoolVar(&worker, "worker", false, "benchmark worker(client)")
 	flag.BoolVar(&master, "master", false, "benchmark master(send benchmsg to client)")
 	flag.Parse()
@@ -37,6 +39,8 @@ func main() {
 		os.Exit(1)
 	}
 	log.DEBUG.Printf("%#v", *conf)
+
+	conf.Split = split
 
 	if conf.Mode == common.LocalMode {
 		benchmark.BenchRun(conf)

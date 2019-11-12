@@ -46,6 +46,7 @@ func (d Deal) Init(args ...interface{}) error {
 			Clis = append(Clis, cli)
 		}
 	}
+	lib.InitIdentity(Bank, addrs, Clis[0])
 	txstore = make([]ch, parallel)
 	wg.Add(parallel)
 	for i, _ := range txstore {
@@ -53,7 +54,7 @@ func (d Deal) Init(args ...interface{}) error {
 	}
 	log.INFO.Printf("prepare tokens of test accounts ...")
 	for i := range Accts {
-		rsp, err := lib.Transplit(Bank, Accts[i].Address, amount, Clis[0])
+		rsp, _, err := lib.Transplit(Bank, Accts[i].Address, amount, Clis[0])
 		if rsp.Header.Error != 0 || err != nil {
 			log.ERROR.Printf("init token error: %#v", err)
 			return errors.New("init token error")
@@ -69,7 +70,7 @@ func (d Deal) Init(args ...interface{}) error {
 
 func (d Deal) Run(seq int, args ...interface{}) error {
 	txs := <-txstore[seq]
-	rsp, err := Clis[seq].PostTx(txs)
+	rsp, _, err := Clis[seq].PostTx(txs)
 	if rsp.Header.Error != 0 || err != nil {
 		return errors.New("run posttx error")
 	}

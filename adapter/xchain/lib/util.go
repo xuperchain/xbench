@@ -1,12 +1,12 @@
 package lib
 
 import (
-	"fmt"
 	"os"
 	"time"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/hex"
 	"math/big"
 	"io/ioutil"
 	"path/filepath"
@@ -81,7 +81,7 @@ func ProfTx(from *Acct, to string, cli *Client) *pb.TxStatus {
 	return cli.SignTx(tx, from, "")
 }
 
-func Transplit(from *Acct, to string, amount int, cli *Client) (*pb.CommonReply, error) {
+func Transplit(from *Acct, to string, amount int, cli *Client) (*pb.CommonReply, string, error) {
 	tx := FormatTx(from.Address)
 	out, _ := cli.PreExecWithSelectUTXO(from, int64(amount))
 	for i:=0; i<=amount-1; i++ {
@@ -92,7 +92,7 @@ func Transplit(from *Acct, to string, amount int, cli *Client) (*pb.CommonReply,
 	return cli.PostTx(txs)
 }
 
-func Trans(from *Acct, to string, amount string, cli *Client) (*pb.CommonReply, error) {
+func Trans(from *Acct, to string, amount string, cli *Client) (*pb.CommonReply, string, error) {
 	tx := FormatTx(from.Address)
 	need, _ := strconv.Atoi(amount)
 	out, _ := cli.PreExecWithSelectUTXO(from, int64(need))
@@ -102,7 +102,7 @@ func Trans(from *Acct, to string, amount string, cli *Client) (*pb.CommonReply, 
 	return cli.PostTx(txs)
 }
 
-func NewContractAcct(from *Acct, name string, cli *Client) (*pb.CommonReply, error) {
+func NewContractAcct(from *Acct, name string, cli *Client) (*pb.CommonReply, string, error) {
 	args := make(map[string][]byte)
 	args["account_name"] = []byte(name)
 	acl := `{
@@ -123,7 +123,7 @@ func NewContractAcct(from *Acct, name string, cli *Client) (*pb.CommonReply, err
 	return cli.PostTx(txs)
 }
 
-func DeployContract(from *Acct, code string, name string, contract string, cli *Client) (*pb.CommonReply, error) {
+func DeployContract(from *Acct, code string, name string, contract string, cli *Client) (*pb.CommonReply, string, error) {
 	args := make(map[string][]byte)
 	args["account_name"] = []byte(name)
 	args["contract_name"] = []byte(contract)
@@ -136,16 +136,14 @@ func DeployContract(from *Acct, code string, name string, contract string, cli *
 	args["contract_code"] = source
 	iarg := `{"creator":"` + base64.StdEncoding.EncodeToString([]byte("xchain")) + `"}`
 	args["init_args"] = []byte(iarg)
-	out, ee := cli.PreExecWithSelectUTXOContract(from, args, "xkernel", "Deploy", "")
-	fmt.Printf("BBB %#v\n", out)
-	fmt.Printf("BBB %#v\n", ee)
+	out, _ := cli.PreExecWithSelectUTXOContract(from, args, "xkernel", "Deploy", "")
 	tx := FormatTx(from.Address)
 	FormatInputPreExec(tx, from, out)
 	txs := cli.SignTx(tx, from, name)
 	return cli.PostTx(txs)
 }
 
-func InvokeContract(from *Acct, contract string, method string, key string, cli *Client) (*pb.CommonReply, error) {
+func InvokeContract(from *Acct, contract string, method string, key string, cli *Client) (*pb.CommonReply, string, error) {
 	args := make(map[string][]byte)
 	args["key"] = []byte(key)
 	out, _ := cli.PreExecWithSelectUTXOContract(from, args, "wasm", method, contract)
@@ -155,7 +153,8 @@ func InvokeContract(from *Acct, contract string, method string, key string, cli 
 	return cli.PostTx(txs)
 }
 
-func InitIdentity(from *Acct, accts []string, cli *Client) (*pb.CommonReply, error) {
+func InitIdentity(from *Acct, accts []string, cli *Client) (*pb.CommonReply, string, error) {
+
 	args := make(map[string][]byte)
 	args["aks"] = []byte(strings.Join(accts, ","))
 	out, _ := cli.PreExecWithSelectUTXOContract(from, args, "wasm", "register_aks", "unified_check")
@@ -193,6 +192,21 @@ func FormatOutput(tx *pb.Transaction, to string, amount string, frozen string) {
 		txout.FrozenHeight = frz
 	}
 	tx.TxOutputs = append(tx.TxOutputs, txout)
+}
+
+func FormatRelayInput(tx *pb.Transaction, relayid string, rsp *pb.InvokeResponse) {
+	tx.ContractRequests = rsp.GetRequests()
+	tx.TxInputsExt = rsp.GetInputs()
+	tx.TxOutputsExt = rsp.GetOutputs()
+	refid, _ := hex.DecodeString(relayid)
+	txOutput := tx.TxOutputs[0]
+	txInput := &pb.TxInput{
+		RefTxid: refid,
+		RefOffset: 0,
+		FromAddr: txOutput.ToAddr,
+		Amount: txOutput.Amount,
+	}
+	tx.TxInputs = append(tx.TxInputs, txInput)
 }
 
 func FormatInputPreExec(tx *pb.Transaction, from *Acct, rsp *pb.PreExecWithSelectUTXOResponse) {
