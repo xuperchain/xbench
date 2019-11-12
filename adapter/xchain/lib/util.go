@@ -154,7 +154,6 @@ func InvokeContract(from *Acct, contract string, method string, key string, cli 
 }
 
 func InitIdentity(from *Acct, accts []string, cli *Client) (*pb.CommonReply, string, error) {
-
 	args := make(map[string][]byte)
 	args["aks"] = []byte(strings.Join(accts, ","))
 	out, _ := cli.PreExecWithSelectUTXOContract(from, args, "wasm", "register_aks", "unified_check")
