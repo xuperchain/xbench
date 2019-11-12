@@ -22,6 +22,8 @@ type Config struct {
 
 	Crypto string `json:"crypto"`
 
+	Split bool `json:"split"`
+
 	// 压测模式，一共有两种模式
 	// local模式：master和worker在一台机器上；
 	// 分布式模式：master和worker散步在不同的机器上，依赖于中间件进行通信和管理
@@ -65,6 +67,7 @@ func GetBenchMsgFromConf(conf *Config) []*common.BenchMsg {
 						Crypto: conf.Crypto,
 						Duration: v,
 						Chain: conf.Chain,
+						Split: conf.Split,
 					},
 				}
 
@@ -85,6 +88,7 @@ func GetBenchMsgFromConf(conf *Config) []*common.BenchMsg {
 						Crypto: conf.Crypto,
 						Batch: v,
 						Chain: conf.Chain,
+						Split: conf.Split,
 					},
 				}
 

@@ -41,6 +41,7 @@ type TestEnv struct {
 	Duration int
 	Chain string
 	Crypto string
+	Split bool
 }
 
 // BenchMsg contains all the bench info while doing one bench test.

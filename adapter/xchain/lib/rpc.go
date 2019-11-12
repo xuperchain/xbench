@@ -3,10 +3,7 @@ package lib
 import (
 	"context"
 	"encoding/hex"
-	"math/big"
-	"math/rand"
 	"strconv"
-	"time"
 	"github.com/xuperchain/xuperbench/log"
 	"github.com/xuperchain/xuperunion/global"
 	"github.com/xuperchain/xuperunion/pb"
@@ -18,30 +15,33 @@ import (
 
 var (
 	conn *grpc.ClientConn
-	cli pb.XchainClient
-	ncli []pb.XchainClient
+	cli []pb.XchainClient
 	cryptotype string
 )
 
-func Connect(host string, nodes []string, crypto string) {
-	rand.Seed(time.Now().Unix())
-	if crypto != "" {
-		cryptotype = crypto
-	} else {
-		cryptotype = "default"
-	}
+type Client struct {
+	Conn pb.XchainClient
+	BC string
+}
+
+func SetCrypto(t string) {
+	cryptotype = t
+}
+
+func Conn(host string, chain string) *Client {
 	opts := make([]grpc.DialOption, 0)
 	opts = append(opts, grpc.WithInsecure())
 	opts = append(opts, grpc.WithMaxMsgSize(64<<20-1))
-	conn, _ = grpc.Dial(host, opts...)
-	cli = pb.NewXchainClient(conn)
-	if len(nodes) > 0 {
-		ncli = make([]pb.XchainClient, 0, len(nodes))
-		for _, n := range nodes {
-			node_conn, _ := grpc.Dial(n, opts...)
-			ncli = append(ncli, pb.NewXchainClient(node_conn))
-		}
+	c, err := grpc.Dial(host, opts...)
+	if err != nil {
+		log.ERROR.Printf("connect host error: %s", err)
+		return nil
 	}
+	cli := &Client{
+		Conn: pb.NewXchainClient(c),
+		BC: chain,
+	}
+	return cli
 }
 
 func header() *pb.Header {
@@ -51,208 +51,101 @@ func header() *pb.Header {
 	return out
 }
 
-func GetBalance(addr string, bcname string) (*pb.AddressStatus, error) {
+func nonce() string {
+	return global.GenNonce()
+}
+
+func (cli *Client) GetBalance(addr string) (*pb.AddressStatus, error) {
 	bc := &pb.TokenDetail{
-		Bcname: bcname,
+		Bcname: cli.BC,
 	}
 	in := &pb.AddressStatus{
 		Header: header(),
 		Address: addr,
 		Bcs: []*pb.TokenDetail{bc},
 	}
-	out, err := cli.GetBalance(context.Background(), in)
-	return out, err
+	return cli.Conn.GetBalance(context.Background(), in)
 }
 
-func GetFrozenBalance(addr string, bcname string) *pb.AddressStatus {
+func (cli *Client) GetFrozenBalance(addr string) (*pb.AddressStatus, error) {
 	bc := &pb.TokenDetail{
-		Bcname: bcname,
+		Bcname: cli.BC,
 	}
 	in := &pb.AddressStatus{
 		Header: header(),
 		Address: addr,
 		Bcs: []*pb.TokenDetail{bc},
 	}
-	out, _ := cli.GetFrozenBalance(context.Background(), in)
-	return out
+	return cli.Conn.GetFrozenBalance(context.Background(), in)
 }
 
-func GetBlock(blockid string, bcname string) *pb.Block {
-	id, _ := hex.DecodeString(blockid)
+func (cli *Client) GetBlock(blockid string) (*pb.Block, error) {
+	id, err := hex.DecodeString(blockid)
+	if err != nil {
+		log.ERROR.Printf("got invalid blockid")
+		return nil, err
+	}
 	in := &pb.BlockID{
 		Header: header(),
-		Bcname: bcname,
+		Bcname: cli.BC,
 		Blockid: id,
 		NeedContent: true,
 	}
-	out, _ := cli.GetBlock(context.Background(), in)
-	return out
+	return cli.Conn.GetBlock(context.Background(), in)
 }
 
-func QueryTx(txid string, bcname string) *pb.TxStatus {
-	tx , _ := hex.DecodeString(txid)
+func (cli *Client) QueryTx(txid string) (*pb.TxStatus, error) {
+	tx, err := hex.DecodeString(txid)
+	if err != nil {
+		log.ERROR.Printf("got invalid txid")
+		return nil, err
+	}
 	in := &pb.TxStatus{
 		Header: header(),
-		Bcname: bcname,
+		Bcname: cli.BC,
 		Txid: tx,
 	}
-	out, _ := cli.QueryTx(context.Background(), in)
-	return out
+	return cli.Conn.QueryTx(context.Background(), in)
 }
 
-func QueryACL(bcname string, acct string) *pb.AclStatus {
+func (cli *Client) QueryACL(acct string) (*pb.AclStatus, error) {
 	in := &pb.AclStatus{
 		Header: header(),
-		Bcname: bcname,
+		Bcname: cli.BC,
 		AccountName: acct,
 	}
-	out, _ := cli.QueryACL(context.Background(), in)
-	return out
+	return cli.Conn.QueryACL(context.Background(), in)
 }
 
-func GetBlockChains() *pb.BlockChains {
+func (cli *Client) GetBlockChains() (*pb.BlockChains, error) {
 	in := &pb.CommonIn{
 		Header: header(),
 	}
-	out, _ := cli.GetBlockChains(context.Background(), in)
-	return out
+	return cli.Conn.GetBlockChains(context.Background(), in)
 }
 
-func GetSystemStatus() *pb.SystemsStatusReply {
+func (cli *Client) GetSystemStatus() (*pb.SystemsStatusReply, error) {
 	in := &pb.CommonIn{
 		Header: header(),
 	}
-	out, _ := cli.GetSystemStatus(context.Background(), in)
-	return out
+	return cli.Conn.GetSystemStatus(context.Background(), in)
 }
 
-func SelectUTXO(f *Acct, bcname string, need string, name string) (*pb.UtxoOutput, error) {
+func (cli *Client) SelectUTXO(f *Acct, need string, name string) (*pb.UtxoOutput, error) {
 	in := &pb.UtxoInput{
 		Header: header(),
-		Bcname: bcname,
+		Bcname: cli.BC,
 		Address: name,
 		Publickey: f.Pub,
 		TotalNeed: need,
 		NeedLock: true,
 	}
-	out, err := cli.SelectUTXO(context.Background(), in)
-	if err != nil {
-		log.ERROR.Printf("select utxo error %#v", err)
-		return nil, err
-	}
-	return out, nil
+	return cli.Conn.SelectUTXO(context.Background(), in)
 }
 
-func FormatTx(from string) *pb.Transaction {
-	tx := &pb.Transaction{
-		Version: 1,
-		Coinbase: false,
-		Desc: []byte(""),
-		Nonce: global.GenNonce(),
-		Timestamp: time.Now().UnixNano(),
-		Initiator: from,
-	}
-	return tx
-}
-
-func FormatTxOutput(tx *pb.Transaction, to string, amount string, frozen string) {
-	amt, _ := big.NewInt(0).SetString(amount, 10)
-	txout := &pb.TxOutput{
-		ToAddr: []byte(to),
-		Amount: amt.Bytes(),
-	}
-	if frozen != "0" {
-		frz, _ := strconv.ParseInt(frozen, 10, 64)
-		txout.FrozenHeight = frz
-	}
-	tx.TxOutputs = append(tx.TxOutputs, txout)
-}
-
-func FormatTxInput(tx *pb.Transaction, bcname string, from *Acct, name string) {
-	total := big.NewInt(0)
-	for i := range(tx.TxOutputs) {
-		amt := big.NewInt(0).SetBytes(tx.TxOutputs[i].GetAmount())
-		total.Add(amt, total)
-	}
-	utxoRes, _ := SelectUTXO(from, bcname, total.String(), name)
-	for _, utxo := range utxoRes.UtxoList {
-		txInput := &pb.TxInput{
-			RefTxid: utxo.RefTxid,
-			RefOffset: utxo.RefOffset,
-			FromAddr: utxo.ToAddr,
-			Amount: utxo.Amount,
-		}
-		tx.TxInputs = append(tx.TxInputs, txInput)
-	}
-	utxoTotal, _ := big.NewInt(0).SetString(utxoRes.TotalSelected, 10)
-	// fill the charge
-	if utxoTotal.Cmp(total) > 0 {
-		delta := utxoTotal.Sub(utxoTotal, total)
-		txCharge := &pb.TxOutput{
-			ToAddr: []byte(name),
-			Amount: delta.Bytes(),
-		}
-		tx.TxOutputs = append(tx.TxOutputs, txCharge)
-	}
-}
-
-func FormatTxExt(tx *pb.Transaction, rsp *pb.InvokeResponse, reqs []*pb.InvokeRequest) {
-	tx.TxInputsExt = rsp.GetInputs()
-	tx.TxOutputsExt = rsp.GetOutputs()
-	tx.ContractRequests = reqs
-}
-
-func FormatTxReserved(tx *pb.Transaction, from string, bcname string) {
-	authrequire := []string{}
-	authrequire = append(authrequire, from)
-	preExeRPCReq := &pb.InvokeRPCRequest{
-		Bcname:      bcname,
-		Requests:    []*pb.InvokeRequest{},
-		Header:      header(),
-		Initiator:   from,
-		AuthRequire: authrequire,
-	}
-	preExeRes, _ := cli.PreExec(context.Background(), preExeRPCReq)
-	tx.ContractRequests = preExeRes.GetResponse().GetRequests()
-	tx.TxInputsExt = preExeRes.GetResponse().GetInputs()
-	tx.TxOutputsExt = preExeRes.GetResponse().GetOutputs()
-}
-
-func FormatTxUtxoPreExec(tx *pb.Transaction, bcname string, from *Acct) {
-	total := big.NewInt(0)
-	for i := range(tx.TxOutputs) {
-		amt := big.NewInt(0).SetBytes(tx.TxOutputs[i].GetAmount())
-		total.Add(amt, total)
-	}
-	need, _ := strconv.ParseInt(total.String(), 10, 64)
-	out, _ := PreExecWithSelectUTXO(from, bcname, need)
-	tx.ContractRequests = out.GetResponse().GetRequests()
-	tx.TxInputsExt = out.GetResponse().GetInputs()
-	tx.TxOutputsExt = out.GetResponse().GetOutputs()
-	for _, utxo := range out.GetUtxoOutput().UtxoList {
-		txInput := &pb.TxInput{
-			RefTxid: utxo.RefTxid,
-			RefOffset: utxo.RefOffset,
-			FromAddr: utxo.ToAddr,
-			Amount: utxo.Amount,
-		}
-		tx.TxInputs = append(tx.TxInputs, txInput)
-	}
-	// fill charge
-	utxoTotal, _ := big.NewInt(0).SetString(out.GetUtxoOutput().TotalSelected, 10)
-	if utxoTotal.Cmp(total) > 0 {
-		delta := utxoTotal.Sub(utxoTotal, total)
-		txCharge := &pb.TxOutput{
-			ToAddr: []byte(from.Address),
-			Amount: delta.Bytes(),
-		}
-		tx.TxOutputs = append(tx.TxOutputs, txCharge)
-	}
-}
-
-func SignTx(tx *pb.Transaction, from *Acct, name string, bcname string) *pb.TxStatus{
-	if name != "" {
-		tx.AuthRequire = append(tx.AuthRequire, name + "/" + from.Address)
+func (cli *Client) SignTx(tx *pb.Transaction, from *Acct, account string) *pb.TxStatus {
+	if account != "" {
+		tx.AuthRequire = append(tx.AuthRequire, account + "/" + from.Address)
 	} else {
 		tx.AuthRequire = append(tx.AuthRequire, from.Address)
 	}
@@ -265,53 +158,108 @@ func SignTx(tx *pb.Transaction, from *Acct, name string, bcname string) *pb.TxSt
 	tx.InitiatorSigns = append(tx.InitiatorSigns, signInfo)
 	tx.AuthRequireSigns = append(tx.AuthRequireSigns, signInfo)
 	tx.Txid, _ = txhash.MakeTransactionID(tx)
-	txStatus := &pb.TxStatus{
-		Bcname: bcname,
+	return &pb.TxStatus{
+		Bcname: cli.BC,
 		Status: pb.TransactionStatus_UNCONFIRM,
 		Tx: tx,
+		Txid: tx.Txid,
 	}
-	txStatus.Txid = tx.Txid
-	return txStatus
 }
 
-func PostTx(txstatus *pb.TxStatus) (*pb.CommonReply, error) {
-	out, err := cli.PostTx(context.Background(), txstatus)
-	return out, err
+func (cli *Client) PostTx(txstatus *pb.TxStatus) (*pb.CommonReply, string, error) {
+	rsp, err := cli.Conn.PostTx(context.Background(), txstatus)
+	txid := hex.EncodeToString(txstatus.Txid)
+	return rsp, txid, err
 }
 
-func PreExecWithSelectUTXO(f *Acct, bcname string, need int64) (*pb.PreExecWithSelectUTXOResponse, error) {
-	content := hash.DoubleSha256([]byte(bcname + f.Address + strconv.FormatInt(need, 10) + "true"))
-	cryptoClient, _ := client.CreateCryptoClient(cryptotype)
-	pri, _ := cryptoClient.GetEcdsaPrivateKeyFromJSON([]byte(f.Pri))
+func (cli *Client) PreExecWithSelectUTXO(acct *Acct, need int64) (*pb.PreExecWithSelectUTXOResponse, error) {
+	content := hash.DoubleSha256([]byte(cli.BC + acct.Address + strconv.FormatInt(need, 10) + "true"))
+	cryptoClient, err := client.CreateCryptoClient(cryptotype)
+	if err != nil {
+		log.ERROR.Printf("create cryptoclient error")
+		return nil, err
+	}
+	pri, _ := cryptoClient.GetEcdsaPrivateKeyFromJSON([]byte(acct.Pri))
 	sign, _ := cryptoClient.SignECDSA(pri, content)
 	signInfo := &pb.SignatureInfo{
-		PublicKey: f.Pub,
+		PublicKey: acct.Pub,
 		Sign: sign,
 	}
-	authrequires := []string{f.Address}
+	authrequires := []string{acct.Address}
 	req := &pb.InvokeRPCRequest{
 		Header: header(),
-		Bcname: bcname,
+		Bcname: cli.BC,
 		Requests: []*pb.InvokeRequest{},
-		Initiator: f.Address,
+		Initiator: acct.Address,
 		AuthRequire: authrequires,
 	}
 	in := &pb.PreExecWithSelectUTXORequest{
 		Header: header(),
-		Bcname: bcname,
-		Address: f.Address,
+		Bcname: cli.BC,
+		Address: acct.Address,
 		TotalAmount: need,
 		SignInfo: signInfo,
 		NeedLock: true,
 		Request: req,
 	}
-	nc := ncli[rand.Intn(len(ncli))]
-	out, err := nc.PreExecWithSelectUTXO(context.Background(), in)
-	return out, err
+	return cli.Conn.PreExecWithSelectUTXO(context.Background(), in)
 }
 
-func PreExec(args map[string][]byte, module string, method string, bcname string,
-	contract string, auth string) (*pb.InvokeResponse, []*pb.InvokeRequest, error) {
+func (cli *Client) PreExecWithSelectUTXOContract(acct *Acct, args map[string][]byte, module string, method string, contract string) (*pb.PreExecWithSelectUTXOResponse, error) {
+	fromaddr := ""
+	irq := &pb.InvokeRequest{
+		ModuleName: module,
+		MethodName: method,
+		Args: args,
+	}
+	if contract != "" && module != "xkernel" {
+		irq.ContractName = contract
+	}
+	irqs := []*pb.InvokeRequest{irq}
+	authrequires := []string{}
+	acctname, ok := args["account_name"]
+	if ok {
+		authrequires = append(authrequires, string(acctname) + "/" + acct.Address)
+	} else {
+		authrequires = append(authrequires, acct.Address)
+	}
+	if module == "xkernel" && method == "Deploy" {
+		fromaddr = string(acctname)
+	} else {
+		fromaddr = acct.Address
+	}
+	req := &pb.InvokeRPCRequest{
+		Header: header(),
+		Bcname: cli.BC,
+		Requests: irqs,
+		Initiator: acct.Address,
+		AuthRequire: authrequires,
+	}
+	content := hash.DoubleSha256([]byte(cli.BC + fromaddr + "0" + "true"))
+	cryptoClient, err := client.CreateCryptoClient(cryptotype)
+	if err != nil {
+		log.ERROR.Printf("create cryptoclient error")
+		return nil, err
+	}
+	pri, _ := cryptoClient.GetEcdsaPrivateKeyFromJSON([]byte(acct.Pri))
+	sign, _ := cryptoClient.SignECDSA(pri, content)
+	signInfo := &pb.SignatureInfo{
+		PublicKey: acct.Pub,
+		Sign: sign,
+	}
+	in := &pb.PreExecWithSelectUTXORequest{
+		Header: header(),
+		Bcname: cli.BC,
+		Address: fromaddr,
+		TotalAmount: 0,
+		SignInfo: signInfo,
+		NeedLock: true,
+		Request: req,
+	}
+	return cli.Conn.PreExecWithSelectUTXO(context.Background(), in)
+}
+
+func (cli *Client) PreExec(args map[string][]byte, module string, method string, contract string, addr string) (*pb.InvokeResponse, []*pb.InvokeRequest, error) {
 	req := &pb.InvokeRequest{
 		ModuleName: module,
 		MethodName: method,
@@ -323,23 +271,18 @@ func PreExec(args map[string][]byte, module string, method string, bcname string
 		req.ContractName = contract
 	}
 	in := &pb.InvokeRPCRequest{
-		Bcname: bcname,
+		Bcname: cli.BC,
 		Requests: reqs,
 		Header: header(),
 	}
-	if auth != "" {
-		acctname, ok := args["account_name"]
-		authrequires := []string{}
-		in.Initiator = auth
-		if ok {
-			authrequires = append(authrequires, string(acctname) + "/" + auth)
-		} else {
-			authrequires = append(authrequires, auth)
-		}
-		in.AuthRequire = authrequires
+	in.Initiator = addr
+	acctname, ok := args["account_name"]
+	if ok {
+		in.AuthRequire = []string{string(acctname) + "/" + addr}
+	} else {
+		in.AuthRequire = []string{addr}
 	}
-	nc := ncli[rand.Intn(len(ncli))]
-	out, err := nc.PreExec(context.Background(), in)
+	out, err := cli.Conn.PreExec(context.Background(), in)
 	return out.GetResponse(), out.GetResponse().GetRequests(), err
 }
 

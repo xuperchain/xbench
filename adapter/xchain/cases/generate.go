@@ -1,6 +1,7 @@
 package cases
 
 import (
+	"strconv"
 	"errors"
 	"github.com/xuperchain/xuperbench/adapter/xchain/lib"
 	"github.com/xuperchain/xuperbench/common"
@@ -15,43 +16,43 @@ type Generate struct {
 func (g Generate) Init(args ...interface{}) error {
 	parallel := args[0].(int)
 	env := args[1].(common.TestEnv)
-	lib.Connect(env.Host, env.Nodes, env.Crypto)
-	amount := 0
-	if env.Batch != 0 {
-		amount = env.Batch
-	} else {
-		amount = env.Duration * 75000
-	}
+	lib.SetCrypto(env.Crypto)
+	amount := env.Batch
 	Bank = lib.InitBankAcct("")
 	addrs := []string{}
 	for i:=0; i<parallel; i++ {
 		Accts[i], _ = lib.CreateAcct(env.Crypto)
 		addrs = append(addrs, Accts[i].Address)
-	}
-	lib.InitIdentity(Bank, env.Chain, addrs)
-	log.INFO.Printf("prepare tokens of test accounts ...")
-	lasttx := ""
-	for i := range Accts {
-		rsp, txid, err := lib.TransferSplit(Bank, Accts[i].Address, env.Chain, amount)
-		if rsp.Header.Error != 0 || err != nil {
-			log.ERROR.Printf("prepare tokens error: %#v, rsp: %#v", err, rsp.Header)
-			return errors.New("init token error")
+		if len(Clis) < parallel {
+			cli := lib.Conn(env.Host, env.Chain)
+			Clis = append(Clis, cli)
 		}
-		lasttx = txid
 	}
-	// wait prepare done
-	if !lib.WaitTx(10, lasttx, env.Chain) {
-		return errors.New("wait timeout")
+	lib.InitIdentity(Bank, addrs, Clis[0])
+	log.INFO.Printf("prepare tokens of test accounts ...")
+	for i := range Accts {
+		if env.Split {
+			rsp, _, err := lib.Transplit(Bank, Accts[i].Address, amount, Clis[0])
+			if rsp.Header.Error != 0 || err != nil {
+				log.ERROR.Printf("prepare tokens error: %#v, rsp: %#v", err, rsp.Header)
+				return errors.New("init token error")
+			}
+		} else {
+			rsp, _, err := lib.Trans(Bank, Accts[i].Address, strconv.Itoa(amount), Clis[0])
+			if rsp.Header.Error != 0 || err != nil {
+				log.ERROR.Printf("prepare tokens error: %#v, rsp: %#v", err, rsp.Header)
+				return errors.New("init token error")
+			}
+		}
 	}
 	return nil
 }
 
 // Run implements the comm.IcaseFace
 func (g Generate) Run(seq int, args ...interface{}) error {
-	env := args[0].(common.TestEnv)
-	rsp, txid, err := lib.Transfer2(Accts[seq], Bank.Address, env.Chain, "1")
+	rsp, _, err := lib.Trans(Accts[seq], Bank.Address, "1", Clis[seq])
 	if rsp.Header.Error != 0 || err != nil {
-		log.ERROR.Printf("transfer error: %#v, rsp: %#v, txidL %#v", err, rsp, txid)
+		log.ERROR.Printf("transfer error: %#v, rsp: %#v", err, rsp)
 		return errors.New("transfer error")
 	}
 	return nil

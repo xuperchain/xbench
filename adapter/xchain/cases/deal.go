@@ -22,7 +22,7 @@ var (
 
 func createtx(i int, batch int, chain string) {
 	for c:=0; c<batch; c++ {
-		tx := lib.GenProfTx(Accts[i], Bank.Address, chain)
+		tx := lib.ProfTx(Accts[i], Bank.Address, Clis[i])
 		if i == 0 && c > 0 && c % 500 == 0 {
 			log.DEBUG.Printf("gen %d Tx", c)
 		}
@@ -34,38 +34,31 @@ func createtx(i int, batch int, chain string) {
 func (d Deal) Init(args ...interface{}) error {
 	parallel := args[0].(int)
 	env := args[1].(common.TestEnv)
-	lib.Connect(env.Host, env.Nodes, env.Crypto)
-	amount := 0
-	if env.Batch != 0 {
-		amount = env.Batch
-	} else {
-		amount = env.Duration * 75000
-	}
+	lib.SetCrypto(env.Crypto)
+	amount := env.Batch
 	Bank = lib.InitBankAcct("")
 	addrs := []string{}
 	for i:=0; i<parallel; i++ {
 		Accts[i], _ = lib.CreateAcct(env.Crypto)
 		addrs = append(addrs, Accts[i].Address)
+		if len(Clis) < parallel {
+			cli := lib.Conn(env.Host, env.Chain)
+			Clis = append(Clis, cli)
+		}
 	}
-	lib.InitIdentity(Bank, env.Chain, addrs)
+	lib.InitIdentity(Bank, addrs, Clis[0])
 	txstore = make([]ch, parallel)
 	wg.Add(parallel)
 	for i, _ := range txstore {
 		txstore[i] = make(chan *pb.TxStatus, amount)
 	}
-	lasttx := ""
 	log.INFO.Printf("prepare tokens of test accounts ...")
 	for i := range Accts {
-		rsp, txid, err := lib.TransferSplit(Bank, Accts[i].Address, env.Chain, amount)
+		rsp, _, err := lib.Transplit(Bank, Accts[i].Address, amount, Clis[0])
 		if rsp.Header.Error != 0 || err != nil {
 			log.ERROR.Printf("init token error: %#v", err)
 			return errors.New("init token error")
 		}
-		lasttx = txid
-	}
-	// wait
-	if !lib.WaitTx(10, lasttx, env.Chain) {
-		return errors.New("wait timeout")
 	}
 	log.INFO.Printf("prepere tx of test accounts ...")
 	for k := range Accts {
@@ -76,8 +69,8 @@ func (d Deal) Init(args ...interface{}) error {
 }
 
 func (d Deal) Run(seq int, args ...interface{}) error {
-	tx := <-txstore[seq]
-	rsp, err := lib.PostTx(tx)
+	txs := <-txstore[seq]
+	rsp, _, err := Clis[seq].PostTx(txs)
 	if rsp.Header.Error != 0 || err != nil {
 		return errors.New("run posttx error")
 	}

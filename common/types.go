@@ -18,6 +18,7 @@ const (
 	Deal  CaseType = "deal"
 	Generate CaseType = "generate"
 	Invoke CaseType = "invoke"
+	Relay CaseType = "relay"
 )
 
 const (

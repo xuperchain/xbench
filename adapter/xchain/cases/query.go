@@ -16,33 +16,36 @@ var (
 	qacct = "1123581321345589"
 	qcontract = "proftestc"
 	qcontractpath = "data/counter"
-	qchainname = ""
 )
 
 func (q Query) Init(args ...interface{}) error {
+	parallel := args[0].(int)
 	env := args[1].(common.TestEnv)
-	qchainname = env.Chain
-	lib.Connect(env.Host, env.Nodes, env.Crypto)
+	lib.SetCrypto(env.Crypto)
+	for i:=0; i<= parallel-1&&len(Clis)<parallel; i++ {
+		cli := lib.Conn(env.Host, env.Chain)
+		Clis = append(Clis, cli)
+	}
 	Bank = lib.InitBankAcct("")
 	log.INFO.Printf("check contract account ...")
-	account := fmt.Sprintf("XC%s@%s", qacct, qchainname)
-	rsp := lib.QueryACL(qchainname, account)
-	if !rsp.Confirmed {
-		lib.NewContractAcct(Bank, qacct, qchainname)
+	account := fmt.Sprintf("XC%s@%s", qacct, env.Chain)
+	status, err := Clis[0].QueryACL(account)
+	if !status.Confirmed {
+		lib.NewContractAcct(Bank, qacct, Clis[0])
 	}
-	lib.Transfer(Bank, account, env.Chain, "10000000")
 	log.INFO.Printf("check counter contract ...")
-	_, _, err := lib.QueryContract(Bank, contract, qchainname, "get", "key_0")
+	_, _, err = lib.QueryContract(Bank, contract, "get", "key_0", Clis[0])
 	if err != nil {
-		lib.DeployContract(Bank, contractpath, account, qcontract, qchainname)
+		lib.Trans(Bank, account, "10000000", Clis[0])
+		lib.DeployContract(Bank, contractpath, account, qcontract, Clis[0])
 	}
 	log.INFO.Printf("prepare done %s on %s", account, qcontract)
-	lib.InvokeContract(Bank, qcontract, qchainname, "increase", "key_0")
+	lib.InvokeContract(Bank, qcontract, "increase", "key_0", Clis[0])
 	return nil
 }
 
 func (q Query) Run(seq int, args ...interface{}) error {
-	rsp, _, err := lib.QueryContract(Bank, qcontract, qchainname, "get", "key_0")
+	rsp, _, err := lib.QueryContract(Bank, qcontract, "get", "key_0", Clis[seq])
 	if rsp == nil || err != nil {
 		return errors.New("run query error")
 	}
