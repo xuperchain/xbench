@@ -30,21 +30,25 @@ func (g Generate) Init(args ...interface{}) error {
 	}
 	lib.InitIdentity(Bank, addrs, Clis[0])
 	log.INFO.Printf("prepare tokens of test accounts ...")
+	txid := ""
 	for i := range Accts {
 		if env.Split {
-			rsp, _, err := lib.Transplit(Bank, Accts[i].Address, amount, Clis[0])
+			rsp, x, err := lib.Transplit(Bank, Accts[i].Address, amount, Clis[0])
 			if rsp.Header.Error != 0 || err != nil {
 				log.ERROR.Printf("prepare tokens error: %#v, rsp: %#v", err, rsp.Header)
 				return errors.New("init token error")
 			}
+			txid = x
 		} else {
-			rsp, _, err := lib.Trans(Bank, Accts[i].Address, strconv.Itoa(amount), Clis[0])
+			rsp, x, err := lib.Trans(Bank, Accts[i].Address, strconv.Itoa(amount), Clis[0])
 			if rsp.Header.Error != 0 || err != nil {
 				log.ERROR.Printf("prepare tokens error: %#v, rsp: %#v", err, rsp.Header)
 				return errors.New("init token error")
 			}
+			txid = x
 		}
 	}
+	lib.WaitConfirm(txid, 5, Clis[0])
 	return nil
 }
 
