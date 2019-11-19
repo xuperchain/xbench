@@ -194,9 +194,11 @@ func FormatOutput(tx *pb.Transaction, to string, amount string, frozen string) {
 }
 
 func FormatRelayInput(tx *pb.Transaction, relayid string, rsp *pb.InvokeResponse) {
-	tx.ContractRequests = rsp.GetRequests()
-	tx.TxInputsExt = rsp.GetInputs()
-	tx.TxOutputsExt = rsp.GetOutputs()
+	if rsp != nil {
+		tx.ContractRequests = rsp.GetRequests()
+		tx.TxInputsExt = rsp.GetInputs()
+		tx.TxOutputsExt = rsp.GetOutputs()
+	}
 	refid, _ := hex.DecodeString(relayid)
 	txOutput := tx.TxOutputs[0]
 	txInput := &pb.TxInput{

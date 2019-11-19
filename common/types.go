@@ -19,6 +19,8 @@ const (
 	Generate CaseType = "generate"
 	Invoke CaseType = "invoke"
 	Relay CaseType = "relay"
+	LcvTrans CaseType = "lcvtrans"
+	LcvInvoke CaseType = "lcvinvoke"
 )
 
 const (

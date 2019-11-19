@@ -9,6 +9,9 @@ var (
 	Bank = &lib.Acct{}
 	Accts = map[int]*lib.Acct{}
 	Clis = []*lib.Client{}
+	LBank = &lib.LcvAcct{}
+	LAccts = map[int]*lib.LcvAcct{}
+	LCBank = &lib.LcvContract{}
 )
 
 // New return the xchain testcase
@@ -44,6 +47,20 @@ func New(label common.CaseType) common.ICaseFace {
 		}
 	case common.Relay:
 		return &Relay{
+			common.TestCase{
+				BCType: common.Xchain,
+				Label:  label,
+			},
+		}
+	case common.LcvTrans:
+		return &LcvTrans{
+			common.TestCase{
+				BCType: common.Xchain,
+				Label:  label,
+			},
+		}
+	case common.LcvInvoke:
+		return &LcvInvoke{
 			common.TestCase{
 				BCType: common.Xchain,
 				Label:  label,
