@@ -169,6 +169,17 @@ func QueryContract(from *Acct, contract string, method string, key string, cli *
 	return cli.PreExec(args, "wasm", method, contract, from.Address)
 }
 
+func WaitConfirm(txid string, retry int, cli *Client) bool {
+	for i:=0; i<retry; i++ {
+		txs, _ := cli.QueryTx(txid)
+		if txs.GetStatus() == 2 {
+			return true
+		}
+		time.Sleep(time.Duration(2) * time.Second)
+	}
+	return false
+}
+
 func FormatTx(from string) *pb.Transaction {
 	return &pb.Transaction{
 		Version: 1,

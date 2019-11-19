@@ -19,6 +19,7 @@ var (
 func firstlap(i int) {
 	_, txid, _ := lib.Trans(Bank, Accts[i].Address, "1", Clis[i])
 	relay[i] = txid
+	lib.WaitConfirm(txid, 5, Clis[i])
 	rg.Done()
 }
 
