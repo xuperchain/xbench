@@ -42,6 +42,8 @@ type TestEnv struct {
 	Chain string
 	Crypto string
 	Split bool
+	XCheck string
+	Endorse string
 }
 
 // BenchMsg contains all the bench info while doing one bench test.
