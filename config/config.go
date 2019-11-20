@@ -20,6 +20,10 @@ type Config struct {
 
 	Chain string `json:"chain"`
 
+	XCheck string `json:"xcheck"`
+
+	Endorse string `json:"endorse"`
+
 	Crypto string `json:"crypto"`
 
 	Split bool `json:"split"`
@@ -68,6 +72,8 @@ func GetBenchMsgFromConf(conf *Config) []*common.BenchMsg {
 						Duration: v,
 						Chain: conf.Chain,
 						Split: conf.Split,
+						XCheck: conf.XCheck,
+						Endorse: conf.Endorse,
 					},
 				}
 
@@ -89,6 +95,8 @@ func GetBenchMsgFromConf(conf *Config) []*common.BenchMsg {
 						Batch: v,
 						Chain: conf.Chain,
 						Split: conf.Split,
+						XCheck: conf.XCheck,
+						Endorse: conf.Endorse,
 					},
 				}
 

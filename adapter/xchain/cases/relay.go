@@ -12,13 +12,14 @@ type Relay struct {
 }
 
 var (
-	relay map[int]string
+	relay = []string{}
 	rg = sync.WaitGroup{}
 )
 
 func firstlap(i int) {
 	_, txid, _ := lib.Trans(Bank, Accts[i].Address, "1", Clis[i])
 	relay[i] = txid
+	lib.WaitConfirm(txid, 5, Clis[i])
 	rg.Done()
 }
 
@@ -37,7 +38,7 @@ func (r Relay) Init(args ...interface{}) error {
 		}
 	}
 	lib.InitIdentity(Bank, addrs, Clis[0])
-	relay = make(map[int]string, 0)
+	relay = make([]string, parallel, parallel)
 	rg.Add(parallel)
 	for i:=0; i<parallel; i++ {
 		go firstlap(i)
@@ -49,8 +50,8 @@ func (r Relay) Init(args ...interface{}) error {
 func (r Relay) Run(seq int, args ...interface{}) error {
 	tx := lib.FormatTx(Accts[seq].Address)
 	lib.FormatOutput(tx, Accts[seq].Address, "1", "0")
-	rsp, _, _ := Clis[seq].PreExec(nil, "", "", "", Accts[seq].Address)
-	lib.FormatRelayInput(tx, relay[seq], rsp)
+	//rsp, _, _ := Clis[seq].PreExec(nil, "", "", "", Accts[seq].Address)
+	lib.FormatRelayInput(tx, relay[seq], nil)
 	txs := Clis[seq].SignTx(tx, Accts[seq], "")
 	_, txid, err := Clis[seq].PostTx(txs)
 	relay[seq] = txid
