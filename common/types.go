@@ -24,6 +24,7 @@ const (
 	QueryAcct CaseType = "queryacct"
 	LcvTrans CaseType = "lcvtrans"
 	LcvInvoke CaseType = "lcvinvoke"
+	RandCase CaseType = "randcase"
 )
 
 const (

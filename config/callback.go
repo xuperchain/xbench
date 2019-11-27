@@ -20,6 +20,7 @@ func SetCallBack(msg []*common.BenchMsg) {
 	xchainQueryBlock := xchain.New(common.QueryBlock)
 	xchainQueryTx := xchain.New(common.QueryTx)
 	xchainQueryAcct := xchain.New(common.QueryAcct)
+	xchainRandCase := xchain.New(common.RandCase)
 
 	for _, v := range msg {
 		switch v.TestCase {
@@ -47,6 +48,8 @@ func SetCallBack(msg []*common.BenchMsg) {
 			v.CB = xchainQueryTx
 		case xchainQueryAcct.GetTestCase():
 			v.CB = xchainQueryAcct
+		case xchainRandCase.GetTestCase():
+			v.CB = xchainRandCase
 		default:
 			panic("unknown callback!")
 		}

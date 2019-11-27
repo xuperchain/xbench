@@ -29,8 +29,9 @@ func (r Relay) Init(args ...interface{}) error {
 	lib.SetCrypto(env.Crypto)
 	Bank = lib.InitBankAcct("")
 	addrs := []string{}
+	lib.BatchRetrieve(LAccts, parallel, env.Chain, env.Host)
 	for i:=0; i<parallel; i++ {
-		Accts[i], _ = lib.CreateAcct(env.Crypto)
+		Accts[i] = lib.RetriveAcct(LAccts[i])
 		addrs = append(addrs, Accts[i].Address)
 		if len(Clis) < parallel {
 			cli := lib.Conn(env.Host, env.Chain)
@@ -50,7 +51,6 @@ func (r Relay) Init(args ...interface{}) error {
 func (r Relay) Run(seq int, args ...interface{}) error {
 	tx := lib.FormatTx(Accts[seq].Address)
 	lib.FormatOutput(tx, Accts[seq].Address, "1", "0")
-	//rsp, _, _ := Clis[seq].PreExec(nil, "", "", "", Accts[seq].Address)
 	lib.FormatRelayInput(tx, relay[seq], nil)
 	txs := Clis[seq].SignTx(tx, Accts[seq], "")
 	_, txid, err := Clis[seq].PostTx(txs)

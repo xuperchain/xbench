@@ -87,6 +87,13 @@ func New(label common.CaseType) common.ICaseFace {
 				Label:  label,
 			},
 		}
+	case common.RandCase:
+		return &RandCase{
+			common.TestCase{
+				BCType: common.Xchain,
+				Label: label,
+			},
+		}
 	default:
 		panic("unknow testcase of xchain")
 	}

@@ -38,15 +38,15 @@ func (i Invoke) Init(args ...interface{}) error {
 	if !status.Confirmed {
 		log.INFO.Printf("new contract account ...")
 		_, txid, _ = lib.NewContractAcct(Bank, acct, Clis[0])
-		lib.WaitConfirm(txid, 5, Clis[0])
+		lib.WaitConfirm(txid, 120, Clis[0])
 	}
 	log.INFO.Printf("check counter contract ...")
 	_, _, err = lib.QueryContract(Bank, contract, "get", "key_0", Clis[0])
 	if err != nil {
 		_, txid, _ = lib.Trans(Bank, account,"10000000", Clis[0])
-		lib.WaitConfirm(txid, 5, Clis[0])
+		lib.WaitConfirm(txid, 120, Clis[0])
 		_, txid, _ = lib.DeployContract(Bank, contractpath, account, contract, Clis[0])
-		lib.WaitConfirm(txid, 5, Clis[0])
+		lib.WaitConfirm(txid, 120, Clis[0])
 	}
 	log.INFO.Printf("prepare done %s on %s", account, contract)
 	return nil

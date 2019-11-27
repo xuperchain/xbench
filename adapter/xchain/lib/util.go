@@ -73,6 +73,15 @@ func CreateAcct(cryptotype string) (*Acct, error) {
 	return acct, nil
 }
 
+func RetriveAcct(l *LcvAcct) *Acct {
+	acct := &Acct{
+		Address: l.Acct.Address,
+		Pub: l.Acct.PublicKey,
+		Pri: l.Acct.PrivateKey,
+	}
+	return acct
+}
+
 func ProfTx(from *Acct, to string, cli *Client) *pb.TxStatus {
 	tx := FormatTx(from.Address)
 	out, _ := cli.PreExecWithSelectUTXO(from, 1)

@@ -24,7 +24,7 @@ func createtx(i int, batch int, chain string) {
 	for c:=0; c<batch; c++ {
 		tx := lib.ProfTx(Accts[i], Bank.Address, Clis[i])
 		if i == 0 && c > 0 && c % 500 == 0 {
-			log.DEBUG.Printf("gen %d Tx", c)
+			log.DEBUG.Printf("prepare %d Tx", c)
 		}
 		txstore[i] <- tx
 	}
@@ -63,7 +63,7 @@ func (d Deal) Init(args ...interface{}) error {
 		}
 	}
 	log.INFO.Printf("prepere tx of test accounts ...")
-	lib.WaitConfirm(txid, 5, Clis[0])
+	lib.WaitConfirm(txid, 120, Clis[0])
 	for k := range Accts {
 		go createtx(k, amount, env.Chain)
 	}

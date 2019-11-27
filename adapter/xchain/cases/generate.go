@@ -20,8 +20,9 @@ func (g Generate) Init(args ...interface{}) error {
 	amount := env.Batch
 	Bank = lib.InitBankAcct("")
 	addrs := []string{}
+	lib.BatchRetrieve(LAccts, parallel, env.Chain, env.Host)
 	for i:=0; i<parallel; i++ {
-		Accts[i], _ = lib.CreateAcct(env.Crypto)
+		Accts[i] = lib.RetriveAcct(LAccts[i])
 		addrs = append(addrs, Accts[i].Address)
 		if len(Clis) < parallel {
 			cli := lib.Conn(env.Host, env.Chain)
@@ -48,7 +49,7 @@ func (g Generate) Init(args ...interface{}) error {
 			txid = x
 		}
 	}
-	lib.WaitConfirm(txid, 5, Clis[0])
+	lib.WaitConfirm(txid, 120, Clis[0])
 	return nil
 }
 
