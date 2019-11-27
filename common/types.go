@@ -19,6 +19,9 @@ const (
 	Generate CaseType = "generate"
 	Invoke CaseType = "invoke"
 	Relay CaseType = "relay"
+	QueryBlock CaseType = "queryblock"
+	QueryTx CaseType = "querytx"
+	QueryAcct CaseType = "queryacct"
 	LcvTrans CaseType = "lcvtrans"
 	LcvInvoke CaseType = "lcvinvoke"
 )

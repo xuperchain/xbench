@@ -17,6 +17,9 @@ func SetCallBack(msg []*common.BenchMsg) {
 	xchainRelay := xchain.New(common.Relay)
 	xchainLcvTrans := xchain.New(common.LcvTrans)
 	xchainLcvInvoke := xchain.New(common.LcvInvoke)
+	xchainQueryBlock := xchain.New(common.QueryBlock)
+	xchainQueryTx := xchain.New(common.QueryTx)
+	xchainQueryAcct := xchain.New(common.QueryAcct)
 
 	for _, v := range msg {
 		switch v.TestCase {
@@ -38,6 +41,12 @@ func SetCallBack(msg []*common.BenchMsg) {
 			v.CB = xchainLcvTrans
 		case xchainLcvInvoke.GetTestCase():
 			v.CB = xchainLcvInvoke
+		case xchainQueryBlock.GetTestCase():
+			v.CB = xchainQueryBlock
+		case xchainQueryTx.GetTestCase():
+			v.CB = xchainQueryTx
+		case xchainQueryAcct.GetTestCase():
+			v.CB = xchainQueryAcct
 		default:
 			panic("unknown callback!")
 		}
