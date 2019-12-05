@@ -58,7 +58,7 @@ func (b QueryBlock) Run(seq int, args ...interface{}) error {
 	} else {
 		blockch[seq] <- last_block
 	}
-	return err
+	return nil
 }
 
 // End implements the comm.IcaseFace
