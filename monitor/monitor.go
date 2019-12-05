@@ -7,7 +7,7 @@ import (
 	"time"
 	"github.com/xuperchain/xuperbench/common"
 	"github.com/xuperchain/xuperbench/log"
-	"github.com/apcera/termtables"
+	"github.com/geoffreybauduin/termtables"
 	"github.com/struCoder/pidusage"
 )
 
