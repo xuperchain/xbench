@@ -3,8 +3,9 @@ package cases
 import (
 	"time"
 	"strconv"
-	"github.com/xuperchain/xuperbench/common"
 	"github.com/xuperchain/xuperbench/adapter/xchain/lib"
+	"github.com/xuperchain/xuperbench/common"
+	"github.com/xuperchain/xuperbench/log"
 )
 
 type LcvTrans struct {
@@ -35,11 +36,14 @@ func (l LcvTrans) Init(args ...interface{}) error {
 // Run implements the comm.IcaseFace
 func (l LcvTrans) Run(seq int, args ...interface{}) error {
 	_, err := LAccts[seq].Transfer(LBank.Acct.Address, "100", "0", "")
+	// The xuperchain test-network with compilance check is not well-prepared yet.
+	// Need to control the pressure.
 	time.Sleep(time.Duration(1) * time.Second)
 	return err
 }
 
 // End implements the comm.IcaseFace
 func (l LcvTrans) End(args ...interface{}) error {
+	log.INFO.Printf("LCV transfer perf-test done.")
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"github.com/xuperchain/xuperbench/adapter/xchain/lib"
 	"github.com/xuperchain/xuperbench/common"
+	"github.com/xuperchain/xuperbench/log"
 )
 
 type QueryBlock struct {
@@ -14,6 +15,9 @@ var (
 	blockch []chan string
 	last_block string
 )
+
+// In this case, we run perfomance test with GetBlock rpc request
+// iterate the chain from the last block to the gensis block.
 
 // Init implements the comm.IcaseFace
 func (b QueryBlock) Init(args ...interface{}) error {
@@ -45,16 +49,20 @@ func (b QueryBlock) Init(args ...interface{}) error {
 func (b QueryBlock) Run(seq int, args ...interface{}) error {
 	blockid := <-blockch[seq]
 	rsp, err := Clis[seq].GetBlock(blockid)
+	if err != nil {
+		return err
+	}
 	preid := hex.EncodeToString(rsp.Block.PreHash)
 	if preid != "" {
 		blockch[seq] <- preid
 	} else {
 		blockch[seq] <- last_block
 	}
-	return err
+	return nil
 }
 
 // End implements the comm.IcaseFace
 func (b QueryBlock) End(args ...interface{}) error {
+	log.INFO.Printf("Query block end.")
 	return nil
 }

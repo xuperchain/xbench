@@ -12,6 +12,9 @@ type Generate struct {
 	common.TestCase
 }
 
+// In this case, we run perfomance test with realtime-generated Transactions.
+// The split flag determine the init UTXO's status (unified or split).
+
 // Init implements the comm.IcaseFace
 func (g Generate) Init(args ...interface{}) error {
 	parallel := args[0].(int)
@@ -30,25 +33,22 @@ func (g Generate) Init(args ...interface{}) error {
 	}
 	lib.InitIdentity(Bank, addrs, Clis[0])
 	log.INFO.Printf("prepare tokens of test accounts ...")
-	txid := ""
 	for i := range Accts {
 		if env.Split {
-			rsp, x, err := lib.Transplit(Bank, Accts[i].Address, amount, Clis[0])
+			rsp, _, err := lib.Transplit(Bank, Accts[i].Address, amount, Clis[0])
 			if rsp.Header.Error != 0 || err != nil {
 				log.ERROR.Printf("prepare tokens error: %#v, rsp: %#v", err, rsp.Header)
 				return errors.New("init token error")
 			}
-			txid = x
 		} else {
-			rsp, x, err := lib.Trans(Bank, Accts[i].Address, strconv.Itoa(amount), Clis[0])
+			rsp, _, err := lib.Trans(Bank, Accts[i].Address, strconv.Itoa(amount), Clis[0])
 			if rsp.Header.Error != 0 || err != nil {
 				log.ERROR.Printf("prepare tokens error: %#v, rsp: %#v", err, rsp.Header)
 				return errors.New("init token error")
 			}
-			txid = x
 		}
 	}
-	lib.WaitConfirm(txid, 5, Clis[0])
+	log.INFO.Printf("prepare done.")
 	return nil
 }
 
@@ -64,6 +64,6 @@ func (g Generate) Run(seq int, args ...interface{}) error {
 
 // End implements the comm.IcaseFace
 func (g Generate) End(args ...interface{}) error {
-	log.INFO.Printf("deal end")
+	log.INFO.Printf("Grnerate perf-test done.")
 	return nil
 }

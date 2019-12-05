@@ -10,6 +10,8 @@ type QueryAcct struct {
 	common.TestCase
 }
 
+// In this case, we run perfomance test with GetBalance rpc request
+
 // Init implements the comm.IcaseFace
 func (a QueryAcct) Init(args ...interface{}) error {
 	parallel := args[0].(int)
@@ -23,8 +25,7 @@ func (a QueryAcct) Init(args ...interface{}) error {
 			Clis = append(Clis, cli)
 		}
 	}
-	_, txid, _ := lib.Trans(Bank, Accts[0].Address, "12345", Clis[0])
-	lib.WaitConfirm(txid, 5, Clis[0])
+	lib.Trans(Bank, Accts[0].Address, "12345", Clis[0])
 	return nil
 }
 
@@ -39,5 +40,6 @@ func (a QueryAcct) Run(seq int, args ...interface{}) error {
 
 // End implements the comm.IcaseFace
 func (a QueryAcct) End(args ...interface{}) error {
+	log.INFO.Printf("Query account end.")
 	return nil
 }

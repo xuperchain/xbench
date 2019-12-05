@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"github.com/xuperchain/xuperbench/adapter/xchain/lib"
 	"github.com/xuperchain/xuperbench/common"
+	"github.com/xuperchain/xuperbench/log"
 )
 
 type QueryTx struct {
@@ -14,6 +15,9 @@ var (
 	qtxch []chan string
 	last_txid string
 )
+
+// In this case, we run perfomance test with QueryTx.
+// Iterate throuth refTx.
 
 // Init implements the comm.IcaseFace
 func (t QueryTx) Init(args ...interface{}) error {
@@ -58,5 +62,6 @@ func (t QueryTx) Run(seq int, args ...interface{}) error {
 
 // End implements the comm.IcaseFace
 func (t QueryTx) End(args ...interface{}) error {
+	log.INFO.Printf("QueryTx perf-test done.")
 	return nil
 }

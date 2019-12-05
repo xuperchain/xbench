@@ -23,6 +23,9 @@ func firstlap(i int) {
 	rg.Done()
 }
 
+// In this case, we run perfomance test with Transaction (without selectUTXO).
+
+// Init implements the comm.IcaseFace
 func (r Relay) Init(args ...interface{}) error {
 	parallel := args[0].(int)
 	env := args[1].(common.TestEnv)
@@ -44,9 +47,11 @@ func (r Relay) Init(args ...interface{}) error {
 		go firstlap(i)
 	}
 	rg.Wait()
+	log.INFO.Printf("prepare done.")
 	return nil
 }
 
+// Run implements the comm.IcaseFace
 func (r Relay) Run(seq int, args ...interface{}) error {
 	tx := lib.FormatTx(Accts[seq].Address)
 	lib.FormatOutput(tx, Accts[seq].Address, "1", "0")
@@ -58,7 +63,8 @@ func (r Relay) Run(seq int, args ...interface{}) error {
 	return err
 }
 
+// End implements the comm.IcaseFace
 func (r Relay) End(args ...interface{}) error {
-	log.INFO.Printf("relay end")
+	log.INFO.Printf("Relay perf-test done.")
 	return nil
 }

@@ -18,6 +18,7 @@ var (
 	contractpath = "data/counter"
 )
 
+// Init implements the comm.IcaseFace
 func (i Invoke) Init(args ...interface{}) error {
 	parallel := args[0].(int)
 	env := args[1].(common.TestEnv)
