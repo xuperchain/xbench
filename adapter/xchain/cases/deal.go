@@ -24,13 +24,17 @@ func createtx(i int, batch int, chain string) {
 	for c:=0; c<batch; c++ {
 		tx := lib.ProfTx(Accts[i], Bank.Address, Clis[i])
 		if i == 0 && c > 0 && c % 500 == 0 {
-			log.DEBUG.Printf("gen %d Tx", c)
+			log.DEBUG.Printf("prepare Tx in progress %d", c)
 		}
 		txstore[i] <- tx
 	}
 	wg.Done()
 }
 
+// In this case, we run perfomance test with Transactions which
+// are generated and signed beforehand.
+
+// Init implements the comm.IcaseFace
 func (d Deal) Init(args ...interface{}) error {
 	parallel := args[0].(int)
 	env := args[1].(common.TestEnv)
@@ -63,14 +67,15 @@ func (d Deal) Init(args ...interface{}) error {
 		}
 	}
 	log.INFO.Printf("prepere tx of test accounts ...")
-	lib.WaitConfirm(txid, 5, Clis[0])
 	for k := range Accts {
 		go createtx(k, amount, env.Chain)
 	}
 	wg.Wait()
+	log.INFO.Printf("init done ...")
 	return nil
 }
 
+// Run implements the comm.IcaseFace
 func (d Deal) Run(seq int, args ...interface{}) error {
 	txs := <-txstore[seq]
 	rsp, _, err := Clis[seq].PostTx(txs)
@@ -80,6 +85,8 @@ func (d Deal) Run(seq int, args ...interface{}) error {
 	return nil
 }
 
+// End implements the comm.IcaseFace
 func (d Deal) End(args ...interface{}) error {
+	log.INFO.Printf("Deal perf-test done.")
 	return nil
 }
