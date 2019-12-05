@@ -3,8 +3,9 @@ package cases
 import (
 	"fmt"
 	"time"
-	"github.com/xuperchain/xuperbench/common"
 	"github.com/xuperchain/xuperbench/adapter/xchain/lib"
+	"github.com/xuperchain/xuperbench/common"
+	"github.com/xuperchain/xuperbench/log"
 )
 
 type LcvInvoke struct {

@@ -57,10 +57,8 @@ func (d Deal) Init(args ...interface{}) error {
 		txstore[i] = make(chan *pb.TxStatus, amount)
 	}
 	log.INFO.Printf("prepare tokens of test accounts ...")
-	txid := ""
 	for i := range Accts {
-		rsp, x, err := lib.Transplit(Bank, Accts[i].Address, amount, Clis[0])
-		txid = x
+		rsp, _, err := lib.Transplit(Bank, Accts[i].Address, amount, Clis[0])
 		if rsp.Header.Error != 0 || err != nil {
 			log.ERROR.Printf("init token error: %#v", err)
 			return errors.New("init token error")

@@ -3,8 +3,9 @@ package cases
 import (
 	"time"
 	"strconv"
-	"github.com/xuperchain/xuperbench/common"
 	"github.com/xuperchain/xuperbench/adapter/xchain/lib"
+	"github.com/xuperchain/xuperbench/common"
+	"github.com/xuperchain/xuperbench/log"
 )
 
 type LcvTrans struct {

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"github.com/xuperchain/xuperbench/adapter/xchain/lib"
 	"github.com/xuperchain/xuperbench/common"
+	"github.com/xuperchain/xuperbench/log"
 )
 
 type QueryBlock struct {
