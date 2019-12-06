@@ -1,4 +1,4 @@
-# xuperbench
+# xbench
 Benchmark project for XuperUnion (and other blockchain further)
 
 ## Pre-requisites
