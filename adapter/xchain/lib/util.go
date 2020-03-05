@@ -173,6 +173,7 @@ func WaitConfirm(txid string, retry int, cli *Client) bool {
 	for i:=0; i<retry; i++ {
 		txs, _ := cli.QueryTx(txid)
 		if txs.GetStatus() == 2 {
+			time.Sleep(time.Duration(15) * time.Second)
 			return true
 		}
 		time.Sleep(time.Duration(2) * time.Second)

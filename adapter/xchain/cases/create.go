@@ -66,6 +66,27 @@ func New(label common.CaseType) common.ICaseFace {
 				Label:  label,
 			},
 		}
+	case common.QueryBlock:
+		return &QueryBlock{
+			common.TestCase{
+				BCType: common.Xchain,
+				Label:  label,
+			},
+		}
+	case common.QueryTx:
+		return &QueryTx{
+			common.TestCase{
+				BCType: common.Xchain,
+				Label:  label,
+			},
+		}
+	case common.QueryAcct:
+		return &QueryAcct{
+			common.TestCase{
+				BCType: common.Xchain,
+				Label:  label,
+			},
+		}
 	default:
 		panic("unknow testcase of xchain")
 	}
