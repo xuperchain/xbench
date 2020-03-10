@@ -3,6 +3,7 @@ package cases
 import (
 	"strconv"
 	"errors"
+	"time"
 	"github.com/xuperchain/xuperbench/adapter/xchain/lib"
 	"github.com/xuperchain/xuperbench/common"
 	"github.com/xuperchain/xuperbench/log"
@@ -23,11 +24,12 @@ func (g Generate) Init(args ...interface{}) error {
 	amount := env.Batch
 	Bank = lib.InitBankAcct("")
 	addrs := []string{}
+	log.DEBUG.Printf("%#v", env.Nodes)
 	for i:=0; i<parallel; i++ {
 		Accts[i], _ = lib.CreateAcct(env.Crypto)
 		addrs = append(addrs, Accts[i].Address)
 		if len(Clis) < parallel {
-			cli := lib.Conn(env.Host, env.Chain)
+			cli := lib.Conn(env.Nodes[i % len(env.Nodes)], env.Chain)
 			Clis = append(Clis, cli)
 		}
 	}
@@ -48,6 +50,7 @@ func (g Generate) Init(args ...interface{}) error {
 			}
 		}
 	}
+	time.Sleep(time.Duration(15) * time.Second)
 	log.INFO.Printf("prepare done.")
 	return nil
 }
@@ -55,7 +58,7 @@ func (g Generate) Init(args ...interface{}) error {
 // Run implements the comm.IcaseFace
 func (g Generate) Run(seq int, args ...interface{}) error {
 	rsp, _, err := lib.Trans(Accts[seq], Bank.Address, "1", Clis[seq])
-	if rsp.Header.Error != 0 || err != nil {
+	if rsp == nil || rsp.Header.Error != 0 || err != nil {
 		log.ERROR.Printf("transfer error: %#v, rsp: %#v", err, rsp)
 		return errors.New("transfer error")
 	}

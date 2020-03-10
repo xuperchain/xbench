@@ -3,6 +3,8 @@ package cases
 import (
 	"fmt"
 	"errors"
+	"strconv"
+	"time"
 	"github.com/xuperchain/xuperbench/adapter/xchain/lib"
 	"github.com/xuperchain/xuperbench/common"
 	"github.com/xuperchain/xuperbench/log"
@@ -23,12 +25,17 @@ func (i Invoke) Init(args ...interface{}) error {
 	parallel := args[0].(int)
 	env := args[1].(common.TestEnv)
 	lib.SetCrypto(env.Crypto)
+	amount := env.Batch * 10000
 	txid := ""
 	for i:=0; i<= parallel-1&&len(Clis)<parallel; i++ {
-		cli := lib.Conn(env.Host, env.Chain)
+		Accts[i], _ = lib.CreateAcct(env.Crypto)
+		cli := lib.Conn(env.Nodes[i % len(env.Nodes)], env.Chain)
 		Clis = append(Clis, cli)
 	}
 	Bank = lib.InitBankAcct("")
+	for i := range Accts {
+		lib.Trans(Bank, Accts[i].Address, strconv.Itoa(amount), Clis[0])
+	}
 	log.INFO.Printf("check contract account ...")
 	account := fmt.Sprintf("XC%s@%s", acct, env.Chain)
 	status, err := Clis[0].QueryACL(account)
@@ -49,13 +56,14 @@ func (i Invoke) Init(args ...interface{}) error {
 		_, txid, _ = lib.DeployContract(Bank, contractpath, account, contract, Clis[0])
 		lib.WaitConfirm(txid, 5, Clis[0])
 	}
+	time.Sleep(time.Duration(15) * time.Second)
 	log.INFO.Printf("prepare done %s on %s", account, contract)
 	return nil
 }
 
 func (i Invoke) Run(seq int, args ...interface{}) error {
 	k := fmt.Sprintf("key_%d", seq)
-	rsp, _, err := lib.InvokeContract(Bank, contract, "increase", k, Clis[seq])
+	rsp, _, err := lib.InvokeContract(Accts[seq], contract, "increase", k, Clis[seq])
 	if err != nil || rsp.Header.Error != 0 {
 		log.ERROR.Printf("err on invoke %#v", rsp.Header)
 		return errors.New("invoke contract error")

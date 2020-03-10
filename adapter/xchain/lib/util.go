@@ -241,6 +241,10 @@ func FormatInputPreExec(tx *pb.Transaction, from *Acct, rsp *pb.PreExecWithSelec
 		tx.TxOutputs = append(tx.TxOutputs, txFee)
 	}
 	if total.Sign() > 0 {
+		if rsp.GetUtxoOutput() == nil {
+			log.ERROR.Printf("utxo nil.. %#v", rsp)
+			return
+		}
 		for _, utxo := range rsp.GetUtxoOutput().UtxoList {
 			txInput := &pb.TxInput{
 				RefTxid: utxo.RefTxid,
