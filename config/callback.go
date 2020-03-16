@@ -4,6 +4,7 @@ import (
 	"github.com/xuperchain/xuperbench/common"
 	"github.com/xuperchain/xuperbench/adapter/demo"
 	xchain "github.com/xuperchain/xuperbench/adapter/xchain/cases"
+	fabric "github.com/xuperchain/xuperbench/adapter/fabric/cases"
 )
 
 // SetCallBack set the callback while do bench test according to the TestCase info
@@ -20,6 +21,8 @@ func SetCallBack(msg []*common.BenchMsg) {
 	xchainQueryBlock := xchain.New(common.QueryBlock)
 	xchainQueryTx := xchain.New(common.QueryTx)
 	xchainQueryAcct := xchain.New(common.QueryAcct)
+	fabricDeal := fabric.New(common.Deal)
+	fabricQuery := fabric.New(common.Query)
 
 	for _, v := range msg {
 		switch v.TestCase {
@@ -47,6 +50,10 @@ func SetCallBack(msg []*common.BenchMsg) {
 			v.CB = xchainQueryTx
 		case xchainQueryAcct.GetTestCase():
 			v.CB = xchainQueryAcct
+		case fabricDeal.GetTestCase():
+			v.CB = fabricDeal
+		case fabricQuery.GetTestCase():
+			v.CB = fabricQuery
 		default:
 			panic("unknown callback!")
 		}

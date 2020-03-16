@@ -56,6 +56,7 @@ func (q Query) Run(seq int, args ...interface{}) error {
 	return err
 }
 
+// End implements the comm.IcaseFace
 func (q Query) End(args ...interface{}) error {
 	return nil
 }

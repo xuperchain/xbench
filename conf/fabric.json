@@ -1,0 +1,13 @@
+{
+    "type": "fabric",
+    "workNum": 1,
+    "mode": "local",
+    "chain": "mychannel",
+    "host": "peer0.org1.example.com",
+    "rounds": [
+        {
+            "label": "query",
+            "number": [ 20 ]
+        }
+    ]
+}
