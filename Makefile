@@ -1,8 +1,7 @@
 
-#GOPATH := ${PWD}/../../../../
-#export GOPATH
 
 export GO111MODULE=auto
+export GOFLAGS=-mod=vendor
 
 OBJDIR := output
 
