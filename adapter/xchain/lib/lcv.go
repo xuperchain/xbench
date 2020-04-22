@@ -102,8 +102,8 @@ func CreateLcvContract(acct *LcvAcct, accountname, contractname string) *LcvCont
 	host := acct.Tran.Xchain.XchainSer
 	bcname := acct.Tran.Xchain.ChainName
 	ca := contractaccount.InitContractAccount(acct.Acct, host, bcname)
-	ca.CreateContractAccount(accountname)
 	aname := fmt.Sprintf("XC%s@%s", accountname, bcname)
+	ca.CreateContractAccount(aname)
 	cract := contract.InitWasmContract(acct.Acct, host, bcname, contractname, aname)
 	return &LcvContract{
 		CAcct: ca,
