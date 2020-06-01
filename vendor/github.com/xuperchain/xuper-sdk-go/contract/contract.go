@@ -94,7 +94,7 @@ func (c *WasmContract) PostWasmContract(preExeWithSelRes *pb.PreExecWithSelectUT
 	c.AuthRequire = authRequires
 	c.InvokeRPCReq = nil
 	c.PreSelUTXOReq = nil
-	c.Fee = strconv.Itoa(int(preExeWithSelRes.Response.GasUsed))
+	c.Fee = strconv.Itoa(int(preExeWithSelRes.GetResponse().GetGasUsed()))
 	c.Amount = "0"
 
 	return c.GenCompleteTxAndPost(preExeWithSelRes)
