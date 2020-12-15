@@ -1,28 +1,30 @@
 package lib
 
 import (
-	"os"
-	"time"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"encoding/hex"
-	"math/big"
-	"io/ioutil"
-	"path/filepath"
 	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"github.com/golang/protobuf/proto"
+	"github.com/xuperchain/xuperbench/log"
+	"github.com/xuperchain/xuperunion/contract/evm/abi"
+	"github.com/xuperchain/xuperunion/crypto/account"
+	"github.com/xuperchain/xuperunion/pb"
+	"io/ioutil"
+	"math/big"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
-	"github.com/xuperchain/xuperbench/log"
-	"github.com/xuperchain/xuperunion/pb"
-	"github.com/xuperchain/xuperunion/crypto/account"
-	"github.com/golang/protobuf/proto"
+	"time"
 )
 
 type Acct struct {
 	Address string
-	Pub string
-	Pri string
+	Pub     string
+	Pri     string
 }
 
 func getFileContent(file string) string {
@@ -44,8 +46,8 @@ func InitBankAcct(dir string) *Acct {
 	scrkey := getFileContent(keyPath + "/private.key")
 	acct := &Acct{
 		Address: addr,
-		Pub: pubkey,
-		Pri: scrkey,
+		Pub:     pubkey,
+		Pri:     scrkey,
 	}
 	return acct
 }
@@ -67,8 +69,8 @@ func CreateAcct(cryptotype string) (*Acct, error) {
 	}
 	acct := &Acct{
 		Address: addr,
-		Pub: pub,
-		Pri: pri,
+		Pub:     pub,
+		Pri:     pri,
 	}
 	return acct, nil
 }
@@ -84,7 +86,7 @@ func ProfTx(from *Acct, to string, cli *Client) *pb.TxStatus {
 func Transplit(from *Acct, to string, amount int, cli *Client) (*pb.CommonReply, string, error) {
 	tx := FormatTx(from.Address)
 	out, _ := cli.PreExecWithSelectUTXO(from, int64(amount))
-	for i:=0; i<=amount-1; i++ {
+	for i := 0; i <= amount-1; i++ {
 		FormatOutput(tx, to, "1", "0")
 	}
 	FormatInputPreExec(tx, from, out)
@@ -130,7 +132,7 @@ func DeployContract(from *Acct, code string, name string, contract string, cli *
 	desc := &pb.WasmCodeDesc{
 		Runtime: "c",
 	}
-	buf , _ := proto.Marshal(desc)
+	buf, _ := proto.Marshal(desc)
 	args["contract_desc"] = buf
 	source, _ := ioutil.ReadFile(code)
 	args["contract_code"] = source
@@ -143,10 +145,85 @@ func DeployContract(from *Acct, code string, name string, contract string, cli *
 	return cli.PostTx(txs)
 }
 
+func DeployEVMContract(from *Acct, codeFile string, abiFile string, name string, contract string, cli *Client) (*pb.CommonReply, string, error) {
+	args := make(map[string][]byte)
+	args["account_name"] = []byte(name)
+	args["contract_name"] = []byte(contract)
+	desc := &pb.WasmCodeDesc{
+		Runtime: "c",
+	}
+	buf, _ := proto.Marshal(desc)
+	args["contract_desc"] = buf
+
+	// read code's bin and abi
+	codeBuf, err := ioutil.ReadFile(codeFile)
+	if err != nil {
+		return nil, "", err
+	}
+	evmCode := string(codeBuf)
+	codeBuf, err = hex.DecodeString(evmCode)
+	if err != nil {
+		return nil, "", err
+	}
+	abiCode, err := ioutil.ReadFile(abiFile)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// make init args, generate preExe params
+	iarg := `{"creator":"` + base64.StdEncoding.EncodeToString([]byte("xchain")) + `"}`
+	initArgsBeforeAbi := make(map[string]interface{})
+	err = json.Unmarshal([]byte(iarg), &initArgsBeforeAbi)
+	if err != nil {
+		return nil, "", err
+	}
+
+	x3args, _, err := convertToEvmArgsWithAbiData(abiCode, "", initArgsBeforeAbi)
+	if err != nil {
+		return nil, "", err
+	}
+	initArgs, _ := json.Marshal(x3args)
+	callData := hex.EncodeToString(x3args["input"])
+	evmCode = evmCode + callData
+	codeBuf, err = hex.DecodeString(evmCode)
+	if err != nil {
+		return nil, "", err
+	}
+
+	args["contract_code"] = codeBuf
+	args["init_args"] = initArgs
+	args["contract_abi"] = abiCode
+	out, _ := cli.PreExecWithSelectUTXOContract(from, args, "xkernel", "Deploy", "")
+	tx := FormatTx(from.Address)
+	FormatInputPreExec(tx, from, out)
+	txs := cli.SignTx(tx, from, name)
+	return cli.PostTx(txs)
+}
+
 func InvokeContract(from *Acct, contract string, method string, key string, cli *Client) (*pb.CommonReply, string, error) {
 	args := make(map[string][]byte)
 	args["key"] = []byte(key)
 	out, _ := cli.PreExecWithSelectUTXOContract(from, args, "wasm", method, contract)
+	tx := FormatTx(from.Address)
+	FormatInputPreExec(tx, from, out)
+	txs := cli.SignTx(tx, from, "")
+	return cli.PostTx(txs)
+}
+
+func InvokeEVMContract(from *Acct, abiFile string, contract string, method string, key string, cli *Client) (*pb.CommonReply, string, error) {
+	iarg := `{"key":"` + base64.StdEncoding.EncodeToString([]byte(key)) + `"}`
+	invokeArgsBeforeAbi := make(map[string]interface{})
+	err := json.Unmarshal([]byte(iarg), &invokeArgsBeforeAbi)
+	if err != nil {
+		return nil, "", err
+	}
+
+	invokeArgs, _, err := convertToEvmArgsWithAbiFile(abiFile, method, invokeArgsBeforeAbi)
+	if err != nil {
+		return nil, "", err
+	}
+
+	out, _ := cli.PreExecWithSelectUTXOContract(from, invokeArgs, "evm", method, contract)
 	tx := FormatTx(from.Address)
 	FormatInputPreExec(tx, from, out)
 	txs := cli.SignTx(tx, from, "")
@@ -169,8 +246,24 @@ func QueryContract(from *Acct, contract string, method string, key string, cli *
 	return cli.PreExec(args, "wasm", method, contract, from.Address)
 }
 
+func QueryEVMContract(from *Acct, abiFile string, contract string, method string, key string, cli *Client) (*pb.InvokeResponse, []*pb.InvokeRequest, error) {
+	iarg := `{"key":"` + base64.StdEncoding.EncodeToString([]byte(key)) + `"}`
+	queryArgsBeforeAbi := make(map[string]interface{})
+	err := json.Unmarshal([]byte(iarg), &queryArgsBeforeAbi)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	queryArgs, _, err := convertToEvmArgsWithAbiFile(abiFile, method, queryArgsBeforeAbi)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return cli.PreExec(queryArgs, "evm", method, contract, from.Address)
+}
+
 func WaitConfirm(txid string, retry int, cli *Client) bool {
-	for i:=0; i<retry; i++ {
+	for i := 0; i < retry; i++ {
 		txs, _ := cli.QueryTx(txid)
 		if txs.GetStatus() == 2 {
 			time.Sleep(time.Duration(15) * time.Second)
@@ -183,10 +276,10 @@ func WaitConfirm(txid string, retry int, cli *Client) bool {
 
 func FormatTx(from string) *pb.Transaction {
 	return &pb.Transaction{
-		Version: 1,
-		Coinbase: false,
-		Desc: []byte(""),
-		Nonce: nonce(),
+		Version:   1,
+		Coinbase:  false,
+		Desc:      []byte(""),
+		Nonce:     nonce(),
 		Timestamp: time.Now().UnixNano(),
 		Initiator: from,
 	}
@@ -214,17 +307,17 @@ func FormatRelayInput(tx *pb.Transaction, relayid string, rsp *pb.InvokeResponse
 	refid, _ := hex.DecodeString(relayid)
 	txOutput := tx.TxOutputs[0]
 	txInput := &pb.TxInput{
-		RefTxid: refid,
+		RefTxid:   refid,
 		RefOffset: 0,
-		FromAddr: txOutput.ToAddr,
-		Amount: txOutput.Amount,
+		FromAddr:  txOutput.ToAddr,
+		Amount:    txOutput.Amount,
 	}
 	tx.TxInputs = append(tx.TxInputs, txInput)
 }
 
 func FormatInputPreExec(tx *pb.Transaction, from *Acct, rsp *pb.PreExecWithSelectUTXOResponse) {
 	total := big.NewInt(0)
-	for i := range(tx.TxOutputs) {
+	for i := range tx.TxOutputs {
 		amt := big.NewInt(0).SetBytes(tx.TxOutputs[i].GetAmount())
 		total.Add(amt, total)
 	}
@@ -243,10 +336,10 @@ func FormatInputPreExec(tx *pb.Transaction, from *Acct, rsp *pb.PreExecWithSelec
 	if total.Sign() > 0 {
 		for _, utxo := range rsp.GetUtxoOutput().UtxoList {
 			txInput := &pb.TxInput{
-				RefTxid: utxo.RefTxid,
+				RefTxid:   utxo.RefTxid,
 				RefOffset: utxo.RefOffset,
-				FromAddr: utxo.ToAddr,
-				Amount: utxo.Amount,
+				FromAddr:  utxo.ToAddr,
+				Amount:    utxo.Amount,
 			}
 			tx.TxInputs = append(tx.TxInputs, txInput)
 		}
@@ -260,4 +353,27 @@ func FormatInputPreExec(tx *pb.Transaction, from *Acct, rsp *pb.PreExecWithSelec
 			tx.TxOutputs = append(tx.TxOutputs, txCharge)
 		}
 	}
+}
+
+func convertToEvmArgsWithAbiFile(abiFile string, method string, args map[string]interface{}) (map[string][]byte, []byte, error) {
+	buf, err := ioutil.ReadFile(abiFile)
+	if err != nil {
+		return nil, nil, err
+	}
+	return convertToEvmArgsWithAbiData(buf, method, args)
+}
+
+func convertToEvmArgsWithAbiData(abiData []byte, method string, args map[string]interface{}) (map[string][]byte, []byte, error) {
+	enc, err := abi.New(abiData)
+	if err != nil {
+		return nil, nil, err
+	}
+	input, err := enc.Encode(method, args)
+	if err != nil {
+		return nil, nil, err
+	}
+	ret := map[string][]byte{
+		"input": input,
+	}
+	return ret, abiData, nil
 }
