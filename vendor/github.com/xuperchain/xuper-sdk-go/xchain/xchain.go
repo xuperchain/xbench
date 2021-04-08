@@ -80,6 +80,11 @@ func (xc *Xchain) PreExecWithSelecUTXO() (*pb.PreExecWithSelectUTXOResponse, err
 		return nil, err
 	}
 
+	if preExecWithSelectUTXOResponse.GetResponse() == nil ||
+		preExecWithSelectUTXOResponse.GetUtxoOutput() == nil {
+		return nil, fmt.Errorf("PreExecWithSelecUTXO EndorserCall Response or UtxoOutput is nil")
+	}
+
 	log.Printf("Fee will cost: %v\n", preExecWithSelectUTXOResponse.GetResponse().GetGasUsed())
 	for _, res := range preExecWithSelectUTXOResponse.GetResponse().GetResponses() {
 		if res.Status >= 400 {
