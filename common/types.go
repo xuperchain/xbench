@@ -13,22 +13,23 @@ const (
 )
 
 const (
-	Open  CaseType = "open"
-	Query CaseType = "query"
-	Deal  CaseType = "deal"
-	Generate CaseType = "generate"
-	Invoke CaseType = "invoke"
-	Relay CaseType = "relay"
+	Open       CaseType = "open"
+	Query      CaseType = "query"
+	Deal       CaseType = "deal"
+	Generate   CaseType = "generate"
+	Invoke     CaseType = "invoke"
+	Relay      CaseType = "relay"
 	QueryBlock CaseType = "queryblock"
-	QueryTx CaseType = "querytx"
-	QueryAcct CaseType = "queryacct"
-	LcvTrans CaseType = "lcvtrans"
-	LcvInvoke CaseType = "lcvinvoke"
+	QueryTx    CaseType = "querytx"
+	QueryAcct  CaseType = "queryacct"
+	LcvTrans   CaseType = "lcvtrans"
+	LcvInvoke  CaseType = "lcvinvoke"
+	EVMInvoke  CaseType = "evminvoke"
 )
 
 const (
-	LocalMode  TestMode = "local"
-	RemoteMode TestMode = "remote"
+	LocalMode    TestMode = "local"
+	RemoteMode   TestMode = "remote"
 	FunctionMode TestMode = "function"
 )
 

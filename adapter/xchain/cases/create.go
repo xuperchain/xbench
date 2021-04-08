@@ -6,10 +6,10 @@ import (
 )
 
 var (
-	Bank = &lib.Acct{}
-	Accts = map[int]*lib.Acct{}
-	Clis = []*lib.Client{}
-	LBank = &lib.LcvAcct{}
+	Bank   = &lib.Acct{}
+	Accts  = map[int]*lib.Acct{}
+	Clis   = []*lib.Client{}
+	LBank  = &lib.LcvAcct{}
 	LAccts = map[int]*lib.LcvAcct{}
 	LCBank = &lib.LcvContract{}
 )
@@ -61,6 +61,13 @@ func New(label common.CaseType) common.ICaseFace {
 		}
 	case common.LcvInvoke:
 		return &LcvInvoke{
+			common.TestCase{
+				BCType: common.Xchain,
+				Label:  label,
+			},
+		}
+	case common.EVMInvoke:
+		return &EVMInvoke{
 			common.TestCase{
 				BCType: common.Xchain,
 				Label:  label,

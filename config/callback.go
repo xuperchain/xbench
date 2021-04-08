@@ -1,10 +1,10 @@
 package config
 
 import (
-	"github.com/xuperchain/xuperbench/common"
 	"github.com/xuperchain/xuperbench/adapter/demo"
-	xchain "github.com/xuperchain/xuperbench/adapter/xchain/cases"
 	fabric "github.com/xuperchain/xuperbench/adapter/fabric/cases"
+	xchain "github.com/xuperchain/xuperbench/adapter/xchain/cases"
+	"github.com/xuperchain/xuperbench/common"
 )
 
 // SetCallBack set the callback while do bench test according to the TestCase info
@@ -18,6 +18,7 @@ func SetCallBack(msg []*common.BenchMsg) {
 	xchainRelay := xchain.New(common.Relay)
 	xchainLcvTrans := xchain.New(common.LcvTrans)
 	xchainLcvInvoke := xchain.New(common.LcvInvoke)
+	xchainEVMInvoke := xchain.New(common.EVMInvoke)
 	xchainQueryBlock := xchain.New(common.QueryBlock)
 	xchainQueryTx := xchain.New(common.QueryTx)
 	xchainQueryAcct := xchain.New(common.QueryAcct)
@@ -44,6 +45,8 @@ func SetCallBack(msg []*common.BenchMsg) {
 			v.CB = xchainLcvTrans
 		case xchainLcvInvoke.GetTestCase():
 			v.CB = xchainLcvInvoke
+		case xchainEVMInvoke.GetTestCase():
+			v.CB = xchainEVMInvoke
 		case xchainQueryBlock.GetTestCase():
 			v.CB = xchainQueryBlock
 		case xchainQueryTx.GetTestCase():
