@@ -203,7 +203,7 @@ func DeployEVMContract(from *Acct, codeFile string, abiFile string, name string,
 func InvokeContract(from *Acct, contract string, method string, key string, cli *Client) (*pb.CommonReply, string, error) {
 	args := make(map[string][]byte)
 	args["key"] = []byte(key)
-	out, _ := cli.PreExecWithSelectUTXOContract(from, args, "wasm", method, contract)
+	out, _ := cli.PreExecWithSelectUTXOContract(from, args, "native", method, contract)
 	tx := FormatTx(from.Address)
 	FormatInputPreExec(tx, from, out)
 	txs := cli.SignTx(tx, from, "")
@@ -233,7 +233,7 @@ func InvokeEVMContract(from *Acct, abiFile string, contract string, method strin
 func InitIdentity(from *Acct, accts []string, cli *Client) (*pb.CommonReply, string, error) {
 	args := make(map[string][]byte)
 	args["aks"] = []byte(strings.Join(accts, ","))
-	out, _ := cli.PreExecWithSelectUTXOContract(from, args, "wasm", "register_aks", "unified_check")
+	out, _ := cli.PreExecWithSelectUTXOContract(from, args, "native", "register_aks", "unified_check")
 	tx := FormatTx(from.Address)
 	FormatInputPreExec(tx, from, out)
 	txs := cli.SignTx(tx, from, "")
@@ -243,7 +243,7 @@ func InitIdentity(from *Acct, accts []string, cli *Client) (*pb.CommonReply, str
 func QueryContract(from *Acct, contract string, method string, key string, cli *Client) (*pb.InvokeResponse, []*pb.InvokeRequest, error) {
 	args := make(map[string][]byte)
 	args["key"] = []byte(key)
-	return cli.PreExec(args, "wasm", method, contract, from.Address)
+	return cli.PreExec(args, "native", method, contract, from.Address)
 }
 
 func QueryEVMContract(from *Acct, abiFile string, contract string, method string, key string, cli *Client) (*pb.InvokeResponse, []*pb.InvokeRequest, error) {
