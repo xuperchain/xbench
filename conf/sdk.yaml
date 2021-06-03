@@ -1,5 +1,0 @@
-endorseServiceHost: "127.0.0.1:8848"
-complianceCheck:
-  complianceCheckEndorseServiceFee: 100
-  complianceCheckEndorseServiceFeeAddress: dpzuVdosQrF2kmzumhVeFQZa1aYcdgFpN
-  complianceCheckEndorseServiceAddress: dpzuVdosQrF2kmzumhVeFQZa1aYcdgFpN
