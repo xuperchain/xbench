@@ -29,7 +29,7 @@ type Config struct {
     Concurrency int
 
     Path string
-    BaseLevel int
+    ID   int
 }
 
 type generator struct {
@@ -77,7 +77,7 @@ func NewGenerator(config *Config, accounts []*account.Account) (Generator, error
 
     t.levelFile = make([]*os.File, t.level+1)
     for i := 0; i <= t.level; i++ {
-        filename := fmt.Sprintf("%02d.dat.%d", i, os.Getpid())
+        filename := fmt.Sprintf("%02d.dat.%d", i, t.config.ID)
         file, err := os.Create(filepath.Join(t.config.Path, filename))
         if err != nil {
             return nil, fmt.Errorf("open level file error: %v", err)

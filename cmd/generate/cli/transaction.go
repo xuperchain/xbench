@@ -1,23 +1,22 @@
 package cli
 
 import (
-    "context"
-    "encoding/json"
-    "fmt"
-    "github.com/spf13/cobra"
-    pb "github.com/xuperchain/xupercore/bcs/ledger/xledger/xldgpb"
-    "github.com/xuperchain/xupercore/lib/utils"
-    "github.com/xuperchain/xupercore/protos"
-    "io"
-    "log"
-    "math/big"
-    "math/rand"
-    "os"
-    "os/exec"
-    "path/filepath"
-    "strconv"
-    "sync"
-    "time"
+	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/spf13/cobra"
+	pb "github.com/xuperchain/xupercore/bcs/ledger/xledger/xldgpb"
+	"github.com/xuperchain/xupercore/lib/utils"
+	"github.com/xuperchain/xupercore/protos"
+	"io"
+	"log"
+	"math/big"
+	"math/rand"
+	"os"
+	"os/exec"
+	"strconv"
+	"sync"
+	"time"
 )
 
 // BenchCommand
@@ -59,6 +58,7 @@ func NewTransactionCommand(cli *Cli) *cobra.Command {
                 Split: t.split,
                 Concurrency: t.concurrency,
                 Path: t.output,
+                ID: t.child+1,
             }
             _, err := t.generate(ctx, config)
             return err
@@ -91,7 +91,9 @@ func (t *TransactionCommand) multiGenerate(ctx context.Context) error {
         Total: int64(t.process),
         Split: t.process,
         Concurrency: t.process,
-        Path: filepath.Join(t.output, "parent"),
+        //Path: filepath.Join(t.output, "parent"),
+	    Path: t.output,
+	    ID: 0,
     }
     g, err := t.generate(ctx, config)
     if err != nil {
@@ -132,7 +134,6 @@ func (t *TransactionCommand) spawn(wg *sync.WaitGroup, input string, child int) 
     }()
     return nil
 }
-
 
 func (t *TransactionCommand) generate(ctx context.Context, config *Config) (Generator, error) {
     accounts, err := LoadAccount(t.split)
