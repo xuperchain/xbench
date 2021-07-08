@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/xuperchain/xuper-sdk-go/account"
-	"github.com/xuperchain/xuperos/common/xupospb/pb"
+	"github.com/xuperchain/xuperchain/service/pb"
 	"io/ioutil"
 	"log"
 	"os"
@@ -23,7 +23,7 @@ var AKs []*account.Account
 
 func InitAccount(concurrency int) {
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	path := filepath.Join(dir, "data/account/mnemonic.dat")
+	path := filepath.Join(dir, "../data/account/mnemonic.dat")
 	fd, err := os.Open(path)
 	if err != nil {
 		fmt.Printf("open file error: %s\n", err)
@@ -58,7 +58,7 @@ func InitAccount(concurrency int) {
 
 func GenAddress(concurrency int) {
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	path := filepath.Join(dir, "data/account/mnemonic.dat")
+	path := filepath.Join(dir, "../data/account/mnemonic.dat")
 	fd, err := os.Open(path)
 	if err != nil {
 		fmt.Printf("open file error: %s\n", err)
@@ -79,6 +79,6 @@ func GenAddress(concurrency int) {
 		buffer.WriteString(fmt.Sprintf("%s\n", ak.Address))
 	}
 
-	addressPath := filepath.Join(dir, "data/account/address.dat")
+	addressPath := filepath.Join(dir, "../data/account/address.dat")
 	_ = ioutil.WriteFile(addressPath, buffer.Bytes(), 0644)
 }

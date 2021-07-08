@@ -2,7 +2,7 @@ package cases
 
 import (
 	"github.com/xuperchain/xuper-sdk-go/account"
-	"github.com/xuperchain/xuperos/common/xupospb/pb"
+	"github.com/xuperchain/xuperchain/service/pb"
 	"math/big"
 	"strconv"
 )

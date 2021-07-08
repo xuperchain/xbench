@@ -12,10 +12,10 @@ import (
 
 	"github.com/xuperchain/crypto/core/hash"
 	"github.com/xuperchain/xuper-sdk-go/account"
+	"github.com/xuperchain/xuperchain/service/common"
+	"github.com/xuperchain/xuperchain/service/pb"
 	"github.com/xuperchain/xupercore/lib/crypto/client"
 	"github.com/xuperchain/xupercore/lib/utils"
-	"github.com/xuperchain/xuperos/common/xupospb/pb"
-	"github.com/xuperchain/xuperos/service/adapter/common"
 )
 
 const (

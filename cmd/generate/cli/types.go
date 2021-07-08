@@ -2,13 +2,14 @@
  * Copyright (c) 2019. Baidu Inc. All Rights Reserved.
  */
 
-package cases
+package cli
 
 import (
 	"encoding/hex"
 	"encoding/json"
-	"github.com/xuperchain/xuperchain/service/pb"
-	"math/big"
+    pb "github.com/xuperchain/xupercore/bcs/ledger/xledger/xldgpb"
+    "math/big"
+
 )
 
 // HexID bytes
@@ -133,15 +134,15 @@ type Transaction struct {
 	Version           int32            `json:"version"`
 	Autogen           bool             `json:"autogen"`
 	Coinbase          bool             `json:"coinbase"`
-	TxInputsExt       []TxInputExt     `json:"txInputsExt"`
-	TxOutputsExt      []TxOutputExt    `json:"txOutputsExt"`
-	ContractRequests  []*InvokeRequest `json:"contractRequests"`
+	//TxInputsExt       []TxInputExt     `json:"txInputsExt"`
+	//TxOutputsExt      []TxOutputExt    `json:"txOutputsExt"`
+	//ContractRequests  []*InvokeRequest `json:"contractRequests"`
 	Initiator         string           `json:"initiator"`
-	AuthRequire       []string         `json:"authRequire"`
+	//AuthRequire       []string         `json:"authRequire"`
 	InitiatorSigns    []SignatureInfo  `json:"initiatorSigns"`
-	AuthRequireSigns  []SignatureInfo  `json:"authRequireSigns"`
+	//AuthRequireSigns  []SignatureInfo  `json:"authRequireSigns"`
 	ReceivedTimestamp int64            `json:"receivedTimestamp"`
-	ModifyBlock       ModifyBlock      `json:"modifyBlock"`
+	//ModifyBlock       ModifyBlock      `json:"modifyBlock"`
 }
 
 type ModifyBlock struct {
@@ -176,7 +177,7 @@ func FromPBTx(tx *pb.Transaction) *Transaction {
 		Version:           tx.Version,
 		Desc:              string(tx.Desc),
 		Autogen:           tx.Autogen,
-		Coinbase:          tx.Coinbase,
+		//Coinbase:          tx.Coinbase,
 		Initiator:         tx.Initiator,
 		ReceivedTimestamp: tx.ReceivedTimestamp,
 	}
@@ -194,45 +195,45 @@ func FromPBTx(tx *pb.Transaction) *Transaction {
 			ToAddr: string(output.ToAddr),
 		})
 	}
-	for _, inputExt := range tx.TxInputsExt {
-		t.TxInputsExt = append(t.TxInputsExt, TxInputExt{
-			Bucket:    inputExt.Bucket,
-			Key:       string(inputExt.Key),
-			RefTxid:   inputExt.RefTxid,
-			RefOffset: inputExt.RefOffset,
-		})
-	}
-	for _, outputExt := range tx.TxOutputsExt {
-		t.TxOutputsExt = append(t.TxOutputsExt, TxOutputExt{
-			Bucket: outputExt.Bucket,
-			Key:    string(outputExt.Key),
-			Value:  string(outputExt.Value),
-		})
-	}
-	if tx.ContractRequests != nil {
-		for i := 0; i < len(tx.ContractRequests); i++ {
-			req := tx.ContractRequests[i]
-			tmpReq := &InvokeRequest{
-				ModuleName:   req.ModuleName,
-				ContractName: req.ContractName,
-				MethodName:   req.MethodName,
-				Args:         map[string]string{},
-			}
-			for argKey, argV := range req.Args {
-				tmpReq.Args[argKey] = string(argV)
-			}
-			for _, rlimit := range req.ResourceLimits {
-				resource := ResourceLimit{
-					Type:  rlimit.Type.String(),
-					Limit: rlimit.Limit,
-				}
-				tmpReq.ResouceLimits = append(tmpReq.ResouceLimits, resource)
-			}
-			t.ContractRequests = append(t.ContractRequests, tmpReq)
-		}
-	}
-
-	t.AuthRequire = append(t.AuthRequire, tx.AuthRequire...)
+	//for _, inputExt := range tx.TxInputsExt {
+	//	t.TxInputsExt = append(t.TxInputsExt, TxInputExt{
+	//		Bucket:    inputExt.Bucket,
+	//		Key:       string(inputExt.Key),
+	//		RefTxid:   inputExt.RefTxid,
+	//		RefOffset: inputExt.RefOffset,
+	//	})
+	//}
+	//for _, outputExt := range tx.TxOutputsExt {
+	//	t.TxOutputsExt = append(t.TxOutputsExt, TxOutputExt{
+	//		Bucket: outputExt.Bucket,
+	//		Key:    string(outputExt.Key),
+	//		Value:  string(outputExt.Value),
+	//	})
+	//}
+	//if tx.ContractRequests != nil {
+	//	for i := 0; i < len(tx.ContractRequests); i++ {
+	//		req := tx.ContractRequests[i]
+	//		tmpReq := &InvokeRequest{
+	//			ModuleName:   req.ModuleName,
+	//			ContractName: req.ContractName,
+	//			MethodName:   req.MethodName,
+	//			Args:         map[string]string{},
+	//		}
+	//		for argKey, argV := range req.Args {
+	//			tmpReq.Args[argKey] = string(argV)
+	//		}
+	//		for _, rlimit := range req.ResourceLimits {
+	//			resource := ResourceLimit{
+	//				Type:  rlimit.Type.String(),
+	//				Limit: rlimit.Limit,
+	//			}
+	//			tmpReq.ResouceLimits = append(tmpReq.ResouceLimits, resource)
+	//		}
+	//		t.ContractRequests = append(t.ContractRequests, tmpReq)
+	//	}
+	//}
+    //
+	//t.AuthRequire = append(t.AuthRequire, tx.AuthRequire...)
 
 	for _, initsign := range tx.InitiatorSigns {
 		t.InitiatorSigns = append(t.InitiatorSigns, SignatureInfo{
@@ -240,21 +241,21 @@ func FromPBTx(tx *pb.Transaction) *Transaction {
 			Sign:      initsign.Sign,
 		})
 	}
-
-	for _, authSign := range tx.AuthRequireSigns {
-		t.AuthRequireSigns = append(t.AuthRequireSigns, SignatureInfo{
-			PublicKey: authSign.PublicKey,
-			Sign:      authSign.Sign,
-		})
-	}
-
-	if tx.ModifyBlock != nil {
-		t.ModifyBlock = ModifyBlock{
-			EffectiveHeight: tx.ModifyBlock.EffectiveHeight,
-			Marked:          tx.ModifyBlock.Marked,
-			EffectiveTxid:   tx.ModifyBlock.EffectiveTxid,
-		}
-	}
+    //
+	//for _, authSign := range tx.AuthRequireSigns {
+	//	t.AuthRequireSigns = append(t.AuthRequireSigns, SignatureInfo{
+	//		PublicKey: authSign.PublicKey,
+	//		Sign:      authSign.Sign,
+	//	})
+	//}
+    //
+	//if tx.ModifyBlock != nil {
+	//	t.ModifyBlock = ModifyBlock{
+	//		EffectiveHeight: tx.ModifyBlock.EffectiveHeight,
+	//		Marked:          tx.ModifyBlock.Marked,
+	//		EffectiveTxid:   tx.ModifyBlock.EffectiveTxid,
+	//	}
+	//}
 	return t
 }
 

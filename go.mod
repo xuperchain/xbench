@@ -1,10 +1,23 @@
-module github.com/ownluke/bench
+module github.com/ownluke/xbench
 
-go 1.14
+go 1.16
 
 require (
+	github.com/alecthomas/kingpin v1.3.8-0.20191105203113-8c96d1c22481 // indirect
 	github.com/bojand/ghz v0.94.0
-	github.com/xuperchain/xuper-sdk-go v1.1.0 // indirect
-	github.com/xuperchain/xuperchain v0.0.0-20210208123615-2d08ff11de3e // indirect
-	github.com/xuperchain/xuperos v0.0.0-20210425064837-c6380230648d // indirect
+	github.com/golang/protobuf v1.4.2
+	github.com/grpc-ecosystem/grpc-gateway v1.16.0
+	github.com/jhump/protoreflect v1.8.2
+	github.com/spf13/cobra v1.0.0
+	github.com/xuperchain/crypto v0.0.0-20201028025054-4d560674bcd6
+	github.com/xuperchain/xuper-sdk-go v1.1.0
+	github.com/xuperchain/xuperchain v0.0.0-20210706075636-787b0bf509e3
+	github.com/xuperchain/xupercore v0.0.0-20210608021245-b15f81dd9ecf
+	go.uber.org/zap v1.15.0
+	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
+	google.golang.org/grpc v1.34.0
 )
+
+replace github.com/xuperchain/xuperchain => ../xuperchain
+
+replace github.com/xuperchain/xupercore => ../xupercore

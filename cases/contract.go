@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/bojand/ghz/runner"
 	"github.com/jhump/protoreflect/dynamic"
-	"github.com/xuperchain/xuperos/common/xupospb/pb"
+	"github.com/xuperchain/xuperchain/service/pb"
 	"google.golang.org/grpc"
 	"strconv"
 )
