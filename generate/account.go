@@ -5,18 +5,22 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
+	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
+	"github.com/xuperchain/xuperchain/service/pb"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 )
 
-var AK = &account.Account{
+// 发压确保 bank 有充足的 token
+var BankAK = &account.Account{
 	Address: `dw3RjnTe47G4u6a6hHWCfEhtaDkgdYWTE`,
 	PublicKey: `{"Curvname":"P-256","X":71150494877248293798614437171152372361228736891836815976675168211334131079261,"Y":93501855315423594331057555514461624511800705618893328391445695924964114158010}`,
 	PrivateKey: `{"Curvname":"P-256","X":71150494877248293798614437171152372361228736891836815976675168211334131079261,"Y":93501855315423594331057555514461624511800705618893328391445695924964114158010,"D":15507592376131504499689165371014638207897342077694859168158927265802326599966}`,
 }
 
-func LoadBankAK(keyDir string) (*account.Account, error) {
+func LoadBankAK() (*account.Account, error) {
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	path := filepath.Join(dir, "../data/bank")
 	var addr, err = ioutil.ReadFile(filepath.Join(path, "address"))
@@ -92,4 +96,43 @@ func GenAddress(concurrency int) {
 
 	addressPath := filepath.Join(dir, "../data/account/address.dat")
 	_ = ioutil.WriteFile(addressPath, buffer.Bytes(), 0644)
+}
+
+// 转账给初始化账户
+func Transfer(client *xuper.XClient, from *account.Account, accounts []*account.Account, amount string, split int) error {
+	log.Printf("transfer start")
+	for _, to := range accounts {
+		tx, err := client.Transfer(from, to.Address, amount, xuper.WithNotPost())
+		if err != nil {
+			return err
+		}
+
+		txOutputs := make([]*pb.TxOutput, 0, len(tx.Tx.TxOutputs)+split)
+		for _, txOutput := range tx.Tx.TxOutputs {
+			if bytes.Equal(txOutput.ToAddr, []byte(to.Address)) {
+				txOutputs = append(txOutputs, Split(txOutput, split)...)
+			} else {
+				txOutputs = append(txOutputs, txOutput)
+			}
+		}
+
+		tx.DigestHash = nil
+		tx.Tx.TxOutputs = txOutputs
+		tx.Tx.AuthRequireSigns = nil
+		tx.Tx.InitiatorSigns = nil
+		err = tx.Sign(from)
+		if err != nil {
+			return err
+		}
+
+		tx, err = client.PostTx(tx)
+		if err != nil {
+			return err
+		}
+
+		//log.Printf("address=%s, txid=%x", to.Address, tx.Tx.Txid)
+	}
+
+	log.Printf("transfer done")
+	return nil
 }

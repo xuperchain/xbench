@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/xuperchain/xbench/generate"
-	"github.com/spf13/cobra"
-	"github.com/xuperchain/xuperchain/service/pb"
 	"io"
 	"log"
 	"math/rand"
@@ -16,6 +13,10 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/spf13/cobra"
+	"github.com/xuperchain/xbench/generate"
+	"github.com/xuperchain/xuperchain/service/pb"
 )
 
 // BenchCommand
@@ -102,7 +103,6 @@ func (t *EvidenceCommand) generate(ctx context.Context) error {
     }
 
     log.Printf("child=%d, pid=%d", t.child, os.Getpid())
-
     evidence, err := generate.NewEvidence(t.total, t.concurrency, t.length, t.batch)
     if err != nil {
     	return fmt.Errorf("new evidence error: %v", err)

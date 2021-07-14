@@ -58,7 +58,7 @@ func (t *evidence) worker(count *int64) {
 	for i := 0; i < total; i += t.batch {
 		txs := make([]*pb.Transaction, t.batch)
 		for j := 0; j < t.batch; j++ {
-			txs[j] = EvidenceTx(AK, t.length)
+			txs[j] = EvidenceTx(BankAK, t.length)
 		}
 
 		t.queue <- txs
@@ -82,4 +82,3 @@ func EvidenceTx(ak *account.Account, length int) *pb.Transaction {
 	SignTx(tx, ak)
 	return tx
 }
-

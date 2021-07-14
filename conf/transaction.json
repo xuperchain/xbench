@@ -1,7 +1,6 @@
 {
-    "total": 1000000,
-    "concurrency": 100,
-    "connections": 1,
+    "total": 500000,
+    "concurrency": 200,
     "insecure": true,
     "call": "pb.Xchain.PostTx",
     "proto": "./pb/xchain.proto",
@@ -9,10 +8,7 @@
         "./pb/googleapis"
     ],
     "tags": {
-        "bench_type": "transaction",
-        "txid":"bfe1eb7708dc367a4f492574cbc586395effb28d7b642cd882b8420cfff9c66f",
-        "address":"dw3RjnTe47G4u6a6hHWCfEhtaDkgdYWTE",
-        "amount":"1000000000000"
+        "bench_type": "transaction"
     },
     "host": "10.117.130.40:32101"
 }

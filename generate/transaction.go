@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-// 交易生成算法描述：递归的分裂交易，直到达到目标数量
+// 离线生成交易算法描述：递归的分裂交易，直到达到目标数量
 // total = split^level
 // total: 生成交易总数(是split的整数倍)
 // split: 分裂系数，表示一个交易分裂出split个子交易 => len(txOutput)=split
@@ -95,7 +95,7 @@ func NewTransaction(total, concurrency, split int, accounts []*account.Account, 
 	return t, nil
 }
 
-// 将所有level队列的交易合并到一个队列：保证依赖顺序
+// 将所有level队列的交易合并到一个队列
 func (t *transaction) Generate() chan []*pb.Transaction {
 	queue := make(chan []*pb.Transaction, 10*t.concurrency)
 	go func() {
@@ -237,7 +237,7 @@ func (t *transaction) generate(tx *pb.Transaction, split int) []*pb.Transaction 
 
 		ak := t.addresses[string(txOutput.ToAddr)]
 		if ak == nil {
-			ak = AK
+			ak = BankAK
 		}
 
 		input := &pb.TxInput{

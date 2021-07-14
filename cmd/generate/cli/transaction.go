@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/cobra"
-	"github.com/xuperchain/xbench/generate"
-	"github.com/xuperchain/xuperchain/service/pb"
 	"io"
 	"log"
 	"math/rand"
@@ -16,6 +13,10 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/spf13/cobra"
+	"github.com/xuperchain/xbench/generate"
+	"github.com/xuperchain/xuperchain/service/pb"
 )
 
 // BenchCommand
@@ -64,7 +65,7 @@ func NewTransactionCommand(cli *Cli) *cobra.Command {
                 Total: t.total,
                 Split: t.split,
                 Concurrency: t.concurrency,
-                Suffix: fmt.Sprintf(".child%d", t.child),
+                Suffix: fmt.Sprintf(".child.%02d", t.child),
             }
             _, err := t.generate(ctx, config)
             return err
@@ -105,7 +106,6 @@ func (t *TransactionCommand) multiGenerate(ctx context.Context) error {
     }
 
     log.Printf("process=%d, output=%s", t.process, childTxFile)
-
     wg := new(sync.WaitGroup)
     for child := 0; child < t.process; child++ {
         wg.Add(1)
@@ -171,7 +171,7 @@ func (t *TransactionCommand) generate(ctx context.Context, config *Config) (stri
 	level := transaction.Level()
 	levelFile := make([]*os.File, level+1)
 	for i := 0; i <= level; i++ {
-		filename := fmt.Sprintf("%02d.dat%s", i, config.Suffix)
+		filename := fmt.Sprintf("level-%02d.dat%s", i, config.Suffix)
 		file, err := os.Create(filepath.Join(t.output, filename))
 		if err != nil {
 			return "", fmt.Errorf("open level file error: %v", err)
@@ -200,7 +200,6 @@ func ReadTxs(input string) ([]*pb.Transaction, error) {
     }
 
     d := json.NewDecoder(file)
-
     txs := make([]*pb.Transaction, 0, 16)
     for {
         tx := &pb.Transaction{}
