@@ -16,7 +16,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/ownluke/xbench/cases"
+	"github.com/xuperchain/xbench/cases"
 )
 
 var (

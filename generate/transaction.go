@@ -3,9 +3,9 @@ package generate
 import (
 	"context"
 	"fmt"
-	"github.com/xuperchain/xuper-sdk-go/account"
-	pb "github.com/xuperchain/xupercore/bcs/ledger/xledger/xldgpb"
-	"github.com/xuperchain/xupercore/protos"
+	"github.com/xuperchain/xuper-sdk-go/v2/account"
+	"github.com/xuperchain/xuperchain/service/pb"
+	"github.com/xuperchain/xupercore/lib/utils"
 	"log"
 	"math"
 	"math/big"
@@ -15,30 +15,38 @@ import (
 	"time"
 )
 
+// 交易生成算法描述：递归的分裂交易，直到达到目标数量
+// total = split^level
+// total: 生成交易总数(是split的整数倍)
+// split: 分裂系数，表示一个交易分裂出split个子交易 => len(txOutput)=split
+// level: 分裂次数，第一次分裂出的交易level=0，不同level之间是关联交易，同一level内是无关联交易
 type transaction struct {
+	ctx     context.Context
+	cancel  context.CancelFunc
+
 	total int
 	split int
 	concurrency int
 
-	ctx context.Context
-
 	accounts    []*account.Account
+	// address => accounts
 	addresses   map[string]*account.Account
 
 	level       int
-	levelCh     chan Level
-
-	queue       chan []*pb.Transaction
+	// 保存生成的中间结果：level+txs
+	queue       chan levelTx
+	// 产出结果：根据level隔离的交易队列
+	levelQueue  []chan []*pb.Transaction
 }
 
-type Level struct {
-	txs []*pb.Transaction
-	level int
+type levelTx struct {
+	level   int
+	txs     []*pb.Transaction
 }
 
-func NewTransaction(total, concurrency, split int, accounts []*account.Account, bootTx *pb.Transaction) (Generator, error) {
-	if total <= 1 {
-		return nil, fmt.Errorf("split error: split=%v", total)
+func NewTransaction(total, concurrency, split int, accounts []*account.Account, bootTx *pb.Transaction) (*transaction, error) {
+	if total <= 1 || split <= 1 {
+		return nil, fmt.Errorf("split must gt 1: total=%v, split=%v", total, split)
 	}
 
 	if len(accounts) < split {
@@ -50,41 +58,97 @@ func NewTransaction(total, concurrency, split int, accounts []*account.Account, 
 		addresses[ak.Address] = ak
 	}
 
-	t := &transaction{
-		total: total,
-		concurrency: concurrency,
-		accounts: accounts,
-		addresses: addresses,
-		levelCh: make(chan Level, 10*split),
-		queue: make(chan []*pb.Transaction, 10*split),
-	}
-
+	// 计算分裂层数
 	level := math.Log10(float64(total)) / math.Log10(float64(split))
-	t.level = int(math.Ceil(level))
-	log.Printf("transaction: total=%d split=%d level=%d", total, split, t.level)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	t.ctx = ctx
+	t := &transaction{
+		ctx: ctx,
+		cancel: cancel,
 
-	go t.output(cancel)
+		total: total,
+		split: split,
+		concurrency: concurrency,
+		level: int(math.Ceil(level)),
 
+		accounts: accounts,
+		addresses: addresses,
+	}
+
+	log.Printf("transaction: total=%d split=%d level=%d, concurrency=%d", t.total, t.split, t.level, t.concurrency)
+
+	t.queue = make(chan levelTx, t.concurrency)
+	t.levelQueue = make([]chan []*pb.Transaction, t.level+1)
+	for i := 0; i <= t.level; i++ {
+		t.levelQueue[i] = make(chan []*pb.Transaction, 10*split)
+	}
 	go func() {
-		t.generate(bootTx, 0)
 		select {
 		case <-t.ctx.Done():
-			return
+			for i := 0; i <= t.level; i++ {
+				close(t.levelQueue[i])
+			}
 		}
 	}()
 
+	go t.producer(bootTx)
 	return t, nil
 }
 
+// 将所有level队列的交易合并到一个队列：保证依赖顺序
 func (t *transaction) Generate() chan []*pb.Transaction {
-	return t.queue
+	queue := make(chan []*pb.Transaction, 10*t.concurrency)
+	go func() {
+		t.merge(0, queue)
+		close(queue)
+	}()
+	return queue
 }
 
-// 生产交易
-func (t *transaction) generate(tx *pb.Transaction, level int) {
+func (t *transaction) merge(level int, queue chan []*pb.Transaction) {
+	if level > t.level{
+		return
+	}
+
+	txs, ok := <- t.levelQueue[level]
+	if !ok {
+		return
+	}
+
+	queue <- txs
+	if level == 0 {
+		time.Sleep(time.Second)
+	}
+	for i := 0; i < len(txs); i++ {
+		t.merge(level+1, queue)
+	}
+}
+
+// 自定义消费交易的方式
+func (t *transaction) Consumer(consume func(level int, txs []*pb.Transaction) error) {
+	wg := new(sync.WaitGroup)
+	wg.Add(len(t.levelQueue))
+	dealer := func(level int, ch chan []*pb.Transaction) {
+		defer wg.Done()
+		for txs := range ch {
+			if err := consume(level, txs); err != nil {
+				return
+			}
+		}
+	}
+
+	for i, ch := range t.levelQueue {
+		go dealer(i, ch)
+	}
+	wg.Wait()
+}
+
+func (t *transaction) Level() int {
+	return t.level
+}
+
+// 分裂交易：递归分裂交易，深度优先
+func (t *transaction) splitRecursion(tx *pb.Transaction, level int) {
 	if level >= t.level {
 		return
 	}
@@ -95,64 +159,76 @@ func (t *transaction) generate(tx *pb.Transaction, level int) {
 	default:
 	}
 
-	unconfirmedTxs := t.producer(tx, t.split)
-	t.levelCh <- Level{
-		txs: unconfirmedTxs,
+	childTxs := t.generate(tx, t.split)
+	t.queue <- levelTx{
 		level: level,
+		txs: childTxs,
 	}
-	for _, unconfirmedTx := range unconfirmedTxs {
-		t.generate(unconfirmedTx, level+1)
+	for _, childTx := range childTxs {
+		t.splitRecursion(childTx, level+1)
 	}
 }
 
-// 产出交易：level之间是关联交易，level内是无关联交易
-func (t *transaction) output(cancel context.CancelFunc) {
-	var count int64
+// 生产交易
+func (t *transaction) producer(tx *pb.Transaction) {
+	ctx, cancel := context.WithCancel(t.ctx)
+	leafQueue := make(chan *pb.Transaction, t.concurrency)
+	go t.splitRecursion(tx, 0)
+	go t.leafTx(leafQueue, cancel)
+
 	for {
 		select {
-		case txsLevel := <-t.levelCh:
-			//t.store(txsLevel.txs, txsLevel.level)
-			t.queue <- txsLevel.txs
-			if txsLevel.level+1 < t.level {
-				continue
-			}
-
-			ch := make(chan struct{}, t.concurrency)
-			for i := 0; i < t.concurrency; i++ {
-				ch <- struct{}{}
-			}
-
-			wg := new(sync.WaitGroup)
-			for _, tx := range txsLevel.txs {
-				wg.Add(1)
-				<- ch
-				go func(tx *pb.Transaction) {
-					txs := t.producer(tx, 1)
-					//t.store(txs, txsLevel.level+1)
-					t.queue <- txs
-
-					total := atomic.AddInt64(&count, int64(len(txs)))
-					if total%100000 == 0 {
-						log.Printf("count=%d\n", count)
-					}
-
-					ch <- struct {}{}
-					wg.Done()
-				}(tx)
-
-			}
-			wg.Wait()
-
-			if count >= int64(t.total) {
-				cancel()
-				return
+		case <-ctx.Done():
+			close(leafQueue)
+			return
+		case ltx := <-t.queue:
+			//t.store(txs, level)
+			t.levelQueue[ltx.level] <- ltx.txs
+			if ltx.level + 1 == t.level {
+				for _, tx := range ltx.txs {
+					leafQueue <- tx
+				}
 			}
 		}
 	}
 }
 
+// 并发处理最后一层交易，提高性能
+func (t *transaction) leafTx(leafQueue chan *pb.Transaction, cancel context.CancelFunc) {
+	var count int64
+	wg := new(sync.WaitGroup)
+	wg.Add(t.concurrency)
+	for i := 0; i < t.concurrency; i++ {
+		go func() {
+			defer wg.Done()
+			for tx := range leafQueue {
+				leafTxs := t.generate(tx, 1)
+
+				total := atomic.AddInt64(&count, int64(len(leafTxs)))
+				if total%100000 == 0 {
+					log.Printf("count=%d\n", total)
+				}
+
+				if total >= int64(t.total+t.split) {
+					cancel()
+					return
+				}
+
+				//t.store(txs, txsLevel.level+1)
+				t.levelQueue[t.level] <- leafTxs
+				if total >= int64(t.total) {
+					cancel()
+					return
+				}
+			}
+		}()
+	}
+	wg.Wait()
+	t.cancel()
+}
+
 // 生成子交易
-func (t *transaction) producer(tx *pb.Transaction, split int) []*pb.Transaction {
+func (t *transaction) generate(tx *pb.Transaction, split int) []*pb.Transaction {
 	txs := make([]*pb.Transaction, len(tx.TxOutputs))
 	for i, txOutput := range tx.TxOutputs {
 		if txOutput == nil {
@@ -164,13 +240,13 @@ func (t *transaction) producer(tx *pb.Transaction, split int) []*pb.Transaction 
 			ak = AK
 		}
 
-		input := &protos.TxInput{
+		input := &pb.TxInput{
 			RefTxid: tx.Txid,
 			RefOffset: int32(i),
 			FromAddr: txOutput.ToAddr,
 			Amount: txOutput.Amount,
 		}
-		output := &protos.TxOutput{
+		output := &pb.TxOutput{
 			ToAddr: []byte(t.accounts[i].Address),
 			Amount: txOutput.Amount,
 		}
@@ -181,41 +257,64 @@ func (t *transaction) producer(tx *pb.Transaction, split int) []*pb.Transaction 
 	return txs
 }
 
-func TransferTx(input *protos.TxInput, output *protos.TxOutput, split int) *pb.Transaction {
+func BootTx(txid, address, amountStr string) (*pb.Transaction, error) {
+	if len(txid) <= 0 {
+		return nil, fmt.Errorf("txID not exist")
+	}
+
+	amount, ok := big.NewInt(0).SetString(amountStr, 10)
+	if !ok {
+		return nil, fmt.Errorf("boot tx amount error")
+	}
+
+	tx := &pb.Transaction{
+		Txid: utils.DecodeId(txid),
+		TxOutputs: []*pb.TxOutput{
+			{
+				ToAddr: []byte(address),
+				Amount: amount.Bytes(),
+			},
+		},
+	}
+
+	return tx, nil
+}
+
+func TransferTx(input *pb.TxInput, output *pb.TxOutput, split int) *pb.Transaction {
 	tx := &pb.Transaction{
 		Version:   3,
 		//Desc:      RandBytes(200),
 		Nonce:     strconv.FormatInt(time.Now().UnixNano(), 36),
 		Timestamp: time.Now().UnixNano(),
 		Initiator: string(input.FromAddr),
-		TxInputs: []*protos.TxInput{input},
+		TxInputs: []*pb.TxInput{input},
 		TxOutputs: Split(output, split),
 	}
 
 	return tx
 }
 
-func Split(txOutput *protos.TxOutput, split int) []*protos.TxOutput {
+func Split(txOutput *pb.TxOutput, split int) []*pb.TxOutput {
 	if split <= 1 {
-		return []*protos.TxOutput{txOutput}
+		return []*pb.TxOutput{txOutput}
 	}
 
 	total := big.NewInt(0).SetBytes(txOutput.Amount)
 	if big.NewInt(int64(split)).Cmp(total) == 1 {
 		// log.Printf("split utxo <= balance required")
 		panic("amount not enough")
-		return []*protos.TxOutput{txOutput}
+		return []*pb.TxOutput{txOutput}
 	}
 
 	amount := big.NewInt(0)
 	amount.Div(total, big.NewInt(int64(split)))
 
-	output := protos.TxOutput{}
+	output := pb.TxOutput{}
 	output.Amount = amount.Bytes()
 	output.ToAddr = txOutput.ToAddr
 
 	rest := total
-	txOutputs := make([]*protos.TxOutput, 0, split+1)
+	txOutputs := make([]*pb.TxOutput, 0, split+1)
 	for i := 1; i < split && rest.Cmp(amount) == 1; i++ {
 		tmpOutput := output
 		txOutputs = append(txOutputs, &tmpOutput)

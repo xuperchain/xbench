@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# transaction
+bin/xbench --config=conf/transaction.json
+
 # --rps=100 \
 # --load-schedule=step --load-start=500 --load-step=100 --load-step-duration=20s \
 # --concurrency-schedule=step --concurrency-start=100 --concurrency-step=50 --concurrency-end=300 --concurrency-step-duration=30s \

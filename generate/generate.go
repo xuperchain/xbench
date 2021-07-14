@@ -1,6 +1,6 @@
 package generate
 
-import pb "github.com/xuperchain/xupercore/bcs/ledger/xledger/xldgpb"
+import "github.com/xuperchain/xuperchain/service/pb"
 
 type Generator interface {
 	Generate() chan []*pb.Transaction

@@ -7,8 +7,8 @@ package generate
 import (
 	"encoding/hex"
 	"encoding/json"
-    pb "github.com/xuperchain/xupercore/bcs/ledger/xledger/xldgpb"
-    "math/big"
+	"github.com/xuperchain/xuperchain/service/pb"
+	"math/big"
 
 )
 

@@ -5,15 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
-	pb "github.com/xuperchain/xupercore/bcs/ledger/xledger/xldgpb"
-	"github.com/xuperchain/xupercore/lib/utils"
-	"github.com/xuperchain/xupercore/protos"
+	"github.com/xuperchain/xbench/generate"
+	"github.com/xuperchain/xuperchain/service/pb"
 	"io"
 	"log"
-	"math/big"
 	"math/rand"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
@@ -24,7 +23,7 @@ type TransactionCommand struct {
     cli *Cli
     cmd *cobra.Command
 
-    total int64
+    total int
     split int
 
     input  string
@@ -39,6 +38,14 @@ type TransactionCommand struct {
     txid string
     address string
     amount string
+}
+
+type Config struct {
+	Total int
+	Split int
+	Concurrency int
+
+	Suffix string
 }
 
 func NewTransactionCommand(cli *Cli) *cobra.Command {
@@ -57,8 +64,7 @@ func NewTransactionCommand(cli *Cli) *cobra.Command {
                 Total: t.total,
                 Split: t.split,
                 Concurrency: t.concurrency,
-                Path: t.output,
-                ID: t.child+1,
+                Suffix: fmt.Sprintf(".child%d", t.child),
             }
             _, err := t.generate(ctx, config)
             return err
@@ -69,7 +75,7 @@ func NewTransactionCommand(cli *Cli) *cobra.Command {
 }
 
 func (t *TransactionCommand) addFlags() {
-    t.cmd.Flags().Int64VarP(&t.total, "total", "t", 1000000, "total tx number")
+    t.cmd.Flags().IntVarP(&t.total, "total", "t", 1000000, "total tx number")
     t.cmd.Flags().IntVarP(&t.split, "split", "s", 100, "split tx output number")
 
     // input file
@@ -88,19 +94,16 @@ func (t *TransactionCommand) addFlags() {
 
 func (t *TransactionCommand) multiGenerate(ctx context.Context) error {
     config := &Config{
-        Total: int64(t.process),
+        Total: t.process,
         Split: t.process,
         Concurrency: t.process,
-        //Path: filepath.Join(t.output, "parent"),
-	    Path: t.output,
-	    ID: 0,
+	    Suffix: ".parent",
     }
-    g, err := t.generate(ctx, config)
+    childTxFile, err := t.generate(ctx, config)
     if err != nil {
         return err
     }
 
-    childTxFile := g.String()
     log.Printf("process=%d, output=%s", t.process, childTxFile)
 
     wg := new(sync.WaitGroup)
@@ -115,7 +118,7 @@ func (t *TransactionCommand) multiGenerate(ctx context.Context) error {
 func (t *TransactionCommand) spawn(wg *sync.WaitGroup, input string, child int) error {
     cmd := exec.Command(os.Args[0],
         "tx",
-        "--total", strconv.FormatInt(t.total/int64(t.process), 10),
+        "--total", strconv.FormatInt(int64(t.total/t.process), 10),
         "--split", strconv.Itoa(t.split),
         "--input", input,
         "--output", t.output,
@@ -135,39 +138,58 @@ func (t *TransactionCommand) spawn(wg *sync.WaitGroup, input string, child int) 
     return nil
 }
 
-func (t *TransactionCommand) generate(ctx context.Context, config *Config) (Generator, error) {
-    accounts, err := LoadAccount(t.split)
+func (t *TransactionCommand) generate(ctx context.Context, config *Config) (string, error) {
+    accounts, err := generate.LoadAccount(config.Split)
     if err != nil {
-        return nil, fmt.Errorf("load account error: %v", err)
-    }
-
-    g, err := NewGenerator(config, accounts)
-    if err != nil {
-        return nil, fmt.Errorf("new generator error: %v", err)
+        return "", fmt.Errorf("load account error: %v", err)
     }
 
     var txs []*pb.Transaction
     if len(t.txid) > 0 {
-        tx, err := t.BootTx()
+        tx, err := generate.BootTx(t.txid, t.address, t.amount)
         if err != nil {
-            return nil, err
+            return "", err
         }
         txs = append(txs, tx)
     } else {
         txs, err = ReadTxs(t.input)
         if err != nil {
-            return nil, fmt.Errorf("read boot tx error: %v", err)
+            return "", fmt.Errorf("read boot tx error: %v", err)
         }
     }
 
     if len(txs) < 1 {
-        return nil, fmt.Errorf("boot tx not exist")
+        return "", fmt.Errorf("boot tx not exist")
     }
 
-    log.Printf("boot=%s\n", FormatTx(txs[t.child]))
-    g.Generate(txs[t.child])
-    log.Printf("child=%d, output=%s", t.child, g.String())
-    return g, nil
+	log.Printf("boot=%s\n", generate.FormatTx(txs[t.child]))
+	transaction, err := generate.NewTransaction(config.Total, config.Concurrency, config.Split, accounts, txs[t.child])
+	if err != nil {
+		return "", fmt.Errorf("new evidence error: %v", err)
+	}
+
+	level := transaction.Level()
+	levelFile := make([]*os.File, level+1)
+	for i := 0; i <= level; i++ {
+		filename := fmt.Sprintf("%02d.dat%s", i, config.Suffix)
+		file, err := os.Create(filepath.Join(t.output, filename))
+		if err != nil {
+			return "", fmt.Errorf("open level file error: %v", err)
+		}
+		levelFile[i] = file
+	}
+
+	transaction.Consumer(func(level int, txs []*pb.Transaction) error {
+		if err := store(txs, levelFile[level]); err != nil {
+			log.Printf("store: write tx error: %v", err)
+			return err
+		}
+		return nil
+	})
+
+	filename := levelFile[level].Name()
+    log.Printf("child=%d, output=%s", t.child, filename)
+    return filename, nil
 }
 
 func ReadTxs(input string) ([]*pb.Transaction, error) {
@@ -194,29 +216,6 @@ func ReadTxs(input string) ([]*pb.Transaction, error) {
     }
 
     return txs, err
-}
-
-func (t *TransactionCommand) BootTx() (*pb.Transaction, error) {
-    if len(t.txid) <= 0 {
-        return nil, fmt.Errorf("txid not exist")
-    }
-
-    amount, ok := big.NewInt(0).SetString(t.amount, 10)
-    if !ok {
-        return nil, fmt.Errorf("boot tx amount error")
-    }
-
-    tx := &pb.Transaction{
-        Txid: utils.DecodeId(t.txid),
-        TxOutputs: []*protos.TxOutput{
-            {
-                ToAddr: []byte(t.address),
-                Amount: amount.Bytes(),
-            },
-        },
-    }
-
-    return tx, nil
 }
 
 func init() {

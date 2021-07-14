@@ -1,7 +1,7 @@
 package main
 
 import (
-    "github.com/ownluke/xbench/cmd/generate/cli"
+    "github.com/xuperchain/xbench/cmd/generate/cli"
 )
 
 func main() {
