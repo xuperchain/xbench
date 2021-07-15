@@ -259,7 +259,7 @@ func (t *transaction) generate(tx *pb.Transaction, split int) []*pb.Transaction 
 
 func BootTx(txid, address, amountStr string) (*pb.Transaction, error) {
 	if len(txid) <= 0 {
-		return nil, fmt.Errorf("txID not exist")
+		return nil, fmt.Errorf("txid not exist")
 	}
 
 	amount, ok := big.NewInt(0).SetString(amountStr, 10)

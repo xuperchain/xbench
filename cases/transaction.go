@@ -8,10 +8,8 @@ import (
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
 	"github.com/xuperchain/xuperchain/service/pb"
-	"log"
-	"math/rand"
-	"sync"
-	"time"
+	"strconv"
+	"strings"
 )
 
 type transaction struct{
@@ -21,7 +19,8 @@ type transaction struct{
 
 	client      *xuper.XClient
 	accounts    []*account.Account
-	provider    chan *pb.Transaction
+	providers   []chan *pb.Transaction
+	generator   generate.SDKGenerator
 }
 
 func NewTransaction(config runner.Config) (Provider, error) {
@@ -35,63 +34,28 @@ func NewTransaction(config runner.Config) (Provider, error) {
 	}
 
 	var err error
-	t.accounts, err = generate.LoadAccount(t.concurrency)
+	t.generator, err = generate.NewTransfer(config.Host, t.concurrency)
 	if err != nil {
-		return nil, fmt.Errorf("load account error: %v", err)
+		return nil, fmt.Errorf("new generator error: %v", err)
 	}
 
-	t.client, err = xuper.New(config.Host)
-	if err != nil {
-		return nil, fmt.Errorf("new xuper client error: %v", err)
+	if err := t.generator.Init(); err != nil {
+		return nil, fmt.Errorf("init generator error: %v", err)
 	}
 
-	err = generate.Transfer(t.client, generate.BankAK, t.accounts, "100000000", 10)
-	if err != nil {
-		return nil, fmt.Errorf("transfer to test accounts error: %v", err)
-	}
-
-	go t.generateTx()
+	t.providers = t.generator.Generate()
 	return t, nil
 }
 
-func (t *transaction) generateTx() {
-	t.provider = make(chan *pb.Transaction, 2*t.concurrency)
-
-	length := len(t.accounts)
-	loop := make(chan *account.Account, length)
-	for _, ak := range t.accounts {
-		loop <- ak
-	}
-
-	wg := new(sync.WaitGroup)
-	wg.Add(t.concurrency)
-	provider := func() {
-		defer wg.Done()
-		for from := range loop {
-			to := t.accounts[rand.Intn(length)]
-			tx, err := t.client.Transfer(from, to.Address, "10", xuper.WithNotPost())
-			if err != nil {
-				log.Printf("generate tx error: %v, address=%s", err, from.Address)
-				time.Sleep(100*time.Millisecond)
-				loop <- from
-				continue
-			}
-
-			t.provider <- tx.Tx
-			loop <- from
-		}
-	}
-
-	for i := 0; i < t.concurrency; i++ {
-		go provider()
-	}
-
-	wg.Wait()
-	close(t.provider)
+func getWorkID(workID string) int {
+	workIdStr := strings.Split(workID[1:], "c")[0]
+	workId, _ := strconv.Atoi(workIdStr)
+	return workId
 }
 
-func (t *transaction) DataProvider(*runner.CallData) ([]*dynamic.Message, error) {
-	tx, ok := <- t.provider
+func (t *transaction) DataProvider(run *runner.CallData) ([]*dynamic.Message, error) {
+	workID := getWorkID(run.WorkerID)
+	tx, ok := <- t.providers[workID]
 	if !ok {
 		return nil, fmt.Errorf("data provider close")
 	}

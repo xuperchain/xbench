@@ -1,5 +1,5 @@
 {
-    "total": 500000,
+    "total": 5000000,
     "concurrency": 200,
     "insecure": true,
     "call": "pb.Xchain.PostTx",

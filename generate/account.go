@@ -99,12 +99,14 @@ func GenAddress(concurrency int) {
 }
 
 // 转账给初始化账户
-func Transfer(client *xuper.XClient, from *account.Account, accounts []*account.Account, amount string, split int) error {
+func Transfer(client *xuper.XClient, from *account.Account, accounts []*account.Account, amount string, split int) ([]*pb.Transaction, error) {
 	log.Printf("transfer start")
+
+	txs := make([]*pb.Transaction, 0, len(accounts))
 	for _, to := range accounts {
 		tx, err := client.Transfer(from, to.Address, amount, xuper.WithNotPost())
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		txOutputs := make([]*pb.TxOutput, 0, len(tx.Tx.TxOutputs)+split)
@@ -122,17 +124,18 @@ func Transfer(client *xuper.XClient, from *account.Account, accounts []*account.
 		tx.Tx.InitiatorSigns = nil
 		err = tx.Sign(from)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		tx, err = client.PostTx(tx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
+		txs = append(txs, tx.Tx)
 		//log.Printf("address=%s, txid=%x", to.Address, tx.Tx.Txid)
 	}
 
 	log.Printf("transfer done")
-	return nil
+	return txs, nil
 }
