@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/xuperchain/xbench/lib/provider"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -15,8 +16,6 @@ import (
 	"github.com/bojand/ghz/runner"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-
-	"github.com/xuperchain/xbench/cases"
 )
 
 var (
@@ -294,12 +293,12 @@ func main() {
 
 	var logger *zap.SugaredLogger
 
-	provider, err := cases.NewProvider(cfg)
+	dataProvider, err := provider.NewDataProviderFunc(&cfg)
 	if err != nil {
 		handleError(err)
 	}
 
-	options := []runner.Option{runner.WithConfig(&cfg), runner.WithDataProvider(provider.DataProvider)}
+	options := []runner.Option{runner.WithConfig(&cfg), runner.WithDataProvider(dataProvider)}
 	if len(cfg.Debug) > 0 {
 		var err error
 		logger, err = createLogger(cfg.Debug)

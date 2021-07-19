@@ -1,4 +1,4 @@
-package generate
+package lib
 
 import (
 	"bufio"
@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-// 发压确保 bank 有充足的 token
+// 银行账户
 var BankAK = &account.Account{
 	Address: `dw3RjnTe47G4u6a6hHWCfEhtaDkgdYWTE`,
 	PublicKey: `{"Curvname":"P-256","X":71150494877248293798614437171152372361228736891836815976675168211334131079261,"Y":93501855315423594331057555514461624511800705618893328391445695924964114158010}`,
@@ -70,7 +70,7 @@ func LoadAccount(number int) ([]*account.Account, error) {
 	return accounts, nil
 }
 
-func GenAddress(concurrency int) {
+func GenerateAddress(concurrency int) {
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	path := filepath.Join(dir, "../data/account/mnemonic.dat")
 	fd, err := os.Open(path)

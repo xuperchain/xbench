@@ -10,14 +10,12 @@
     "tags": {
         "benchmark": "contract",
 
-        "contract_account": "XC1234567890123456@xuper",
-        "code_path": "./contract/short_content.wasm",
+        "contract_account": "XC1111111111111111@xuper",
+        "code_path": "./contract/counter.wasm",
 
         "module_name":"wasm",
-        "contract_name":"short_content",
-        "method_name":"storeShortContent",
-
-        "length":"256"
+        "contract_name":"counter",
+        "method_name":"increase"
     },
     "host": "10.117.130.40:32101"
 }

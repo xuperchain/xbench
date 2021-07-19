@@ -1,4 +1,4 @@
-package generate
+package lib
 
 import (
 	"bytes"
@@ -7,61 +7,8 @@ import (
 	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
 	"github.com/xuperchain/xuperchain/service/pb"
 	"log"
-	"math/rand"
+	"math/big"
 )
-
-// 调用sdk生成tx
-type transfer struct {
-	host        string
-	concurrency int
-	split       int
-
-	client      *xuper.XClient
-	accounts    []*account.Account
-}
-
-func NewTransfer(config *Config) (Generator, error) {
-	t := &transfer{
-		host: config.Host,
-		concurrency: config.Concurrency,
-		split: 10,
-	}
-
-	var err error
-	t.accounts, err = LoadAccount(t.concurrency)
-	if err != nil {
-		return nil, fmt.Errorf("load account error: %v", err)
-	}
-
-	t.client, err = xuper.New(t.host)
-	if err != nil {
-		return nil, fmt.Errorf("new xuper client error: %v", err)
-	}
-
-	log.Printf("generate: type=transfer, concurrency=%d", t.concurrency)
-	return t, nil
-}
-
-func (t *transfer) Init() error {
-	_, err := Transfer(t.client, BankAK, t.accounts, "100000000", t.split)
-	if err != nil {
-		return fmt.Errorf("transfer to test accounts error: %v", err)
-	}
-
-	return nil
-}
-
-func (t *transfer) Generate(id int) (*pb.Transaction, error) {
-	from := t.accounts[id]
-	to := t.accounts[rand.Intn(len(t.accounts))]
-	tx, err := t.client.Transfer(from, to.Address, "10", xuper.WithNotPost())
-	if err != nil {
-		log.Printf("generate tx error: %v, address=%s", err, from.Address)
-		return nil, err
-	}
-
-	return tx.Tx, nil
-}
 
 // 转账给初始化账户
 func Transfer(client *xuper.XClient, from *account.Account, accounts []*account.Account, amount string, split int) ([]*pb.Transaction, error) {
@@ -77,7 +24,7 @@ func Transfer(client *xuper.XClient, from *account.Account, accounts []*account.
 		txOutputs := make([]*pb.TxOutput, 0, len(tx.Tx.TxOutputs)+split)
 		for _, txOutput := range tx.Tx.TxOutputs {
 			if bytes.Equal(txOutput.ToAddr, []byte(to.Address)) {
-				txOutputs = append(txOutputs, Split(txOutput, split)...)
+				txOutputs = append(txOutputs, SplitUTXO(txOutput, split)...)
 			} else {
 				txOutputs = append(txOutputs, txOutput)
 			}
@@ -105,7 +52,6 @@ func Transfer(client *xuper.XClient, from *account.Account, accounts []*account.
 	return txs, nil
 }
 
-
 // 分裂账户余额，避免并发请求时 "no enough money"
 func SplitTx(host string, ak *account.Account, split int) error {
 	client, err := xuper.New(host)
@@ -120,7 +66,7 @@ func SplitTx(host string, ak *account.Account, split int) error {
 	}
 
 	txOutputs := make([]*pb.TxOutput, 0, len(tx.Tx.TxOutputs)+split)
-	txOutputs = append(txOutputs, Split(tx.Tx.TxOutputs[0], split)...)
+	txOutputs = append(txOutputs, SplitUTXO(tx.Tx.TxOutputs[0], split)...)
 	txOutputs = append(txOutputs, tx.Tx.TxOutputs[1:]...)
 
 	tx.DigestHash = nil
@@ -141,6 +87,36 @@ func SplitTx(host string, ak *account.Account, split int) error {
 	return nil
 }
 
-func init() {
-	RegisterGenerator(BenchmarkTransfer, NewTransfer)
+
+func SplitUTXO(txOutput *pb.TxOutput, split int) []*pb.TxOutput {
+	if split <= 1 {
+		return []*pb.TxOutput{txOutput}
+	}
+
+	total := big.NewInt(0).SetBytes(txOutput.Amount)
+	if big.NewInt(int64(split)).Cmp(total) == 1 {
+		// log.Printf("split utxo <= balance required")
+		panic("amount not enough")
+		return []*pb.TxOutput{txOutput}
+	}
+
+	amount := big.NewInt(0)
+	amount.Div(total, big.NewInt(int64(split)))
+
+	output := pb.TxOutput{}
+	output.Amount = amount.Bytes()
+	output.ToAddr = txOutput.ToAddr
+
+	rest := total
+	txOutputs := make([]*pb.TxOutput, 0, split+1)
+	for i := 1; i < split && rest.Cmp(amount) == 1; i++ {
+		tmpOutput := output
+		txOutputs = append(txOutputs, &tmpOutput)
+		rest.Sub(rest, amount)
+	}
+	output.Amount = rest.Bytes()
+	txOutputs = append(txOutputs, &output)
+
+	return txOutputs
 }
+

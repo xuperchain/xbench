@@ -2,8 +2,8 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"math/rand"
 	"os"
@@ -14,7 +14,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/xuperchain/xbench/generate"
+	"github.com/xuperchain/xbench/cases"
+	"github.com/xuperchain/xbench/lib"
 	"github.com/xuperchain/xuperchain/service/pb"
 )
 
@@ -50,7 +51,7 @@ func NewTransactionCommand(cli *Cli) *cobra.Command {
 				return t.generate(ctx)
 			}
 
-			if err := generate.SplitTx(t.host, generate.BankAK, t.concurrency*t.process); err != nil {
+			if err := lib.SplitTx(t.host, lib.BankAK, t.concurrency*t.process); err != nil {
 				return err
 			}
 
@@ -100,12 +101,12 @@ func (t *TransactionCommand) spawn(wg *sync.WaitGroup, child int) error {
 }
 
 func (t *TransactionCommand) generate(ctx context.Context) error {
-	config := &generate.Config{
+	config := &cases.Config{
 		Host: t.host,
 		Total: t.total,
 		Concurrency: t.concurrency,
 	}
-	generator, err := generate.NewTransaction(config)
+	generator, err := cases.NewTransaction(config)
 	if err != nil {
 		return fmt.Errorf("new transaction error: %v", err)
 	}
@@ -114,34 +115,29 @@ func (t *TransactionCommand) generate(ctx context.Context) error {
 		return fmt.Errorf("init transaction error: %v", err)
 	}
 
-	queues := make([]chan *pb.Transaction, t.concurrency)
-	for i := 0; i < t.concurrency; i++ {
-		queues[i] = make(chan *pb.Transaction, t.concurrency)
-	}
-
-	go generate.Producer(context.Background(), generator, queues)
-
-	wg := new(sync.WaitGroup)
-	wg.Add(t.concurrency)
+	encoders := make([]*json.Encoder, t.concurrency)
 	for i := 0; i < t.concurrency; i++ {
 		filename := fmt.Sprintf("transaction.dat.%04d", t.child*t.concurrency+i)
 		file, err := os.Create(filepath.Join(t.output, filename))
 		if err != nil {
 			return fmt.Errorf("open output file error: %v", err)
 		}
-
-		go func(queue chan *pb.Transaction, out io.Writer) {
-			defer wg.Done()
-			if err := generate.WriteFile(queue, out, t.total/t.concurrency); err != nil {
-				log.Fatalf("store: write tx error: %v", err)
-			}
-		}(queues[i], file)
+		encoders[i] = json.NewEncoder(file)
 	}
-	wg.Wait()
+
+	total := int(float32(t.total/t.concurrency)*1.1)
+	cases.Consumer(total, t.concurrency, generator, func(i int, tx *pb.Transaction) error {
+		if err := encoders[i].Encode(tx); err != nil {
+			log.Fatalf("write tx error: %v", err)
+			return err
+		}
+		return nil
+	})
 
 	log.Printf("child=%d, pid=%d", t.child, os.Getpid())
 	return nil
 }
+
 
 func init() {
 	AddCommand(NewTransactionCommand)

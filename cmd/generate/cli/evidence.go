@@ -2,8 +2,8 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"math/rand"
 	"os"
@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/xuperchain/xbench/generate"
+	"github.com/xuperchain/xbench/cases"
 	"github.com/xuperchain/xuperchain/service/pb"
 )
 
@@ -96,43 +96,42 @@ func (t *EvidenceCommand) spawn(wg *sync.WaitGroup, child int) error {
 	return nil
 }
 
+
 func (t *EvidenceCommand) generate(ctx context.Context) error {
-	config := &generate.Config{
+	config := &cases.Config{
 		Total: t.total,
 		Concurrency: t.concurrency,
 		Args: map[string]string{
 			"length": strconv.Itoa(t.length),
 		},
 	}
-	generator, err := generate.NewEvidence(config)
+	generator, err := cases.NewEvidence(config)
 	if err != nil {
 		return fmt.Errorf("new evidence error: %v", err)
 	}
 
-	queues := make([]chan *pb.Transaction, t.concurrency)
-	for i := 0; i < t.concurrency; i++ {
-		queues[i] = make(chan *pb.Transaction, t.concurrency)
+	if err = generator.Init(); err != nil {
+		return fmt.Errorf("init evidence error: %v", err)
 	}
 
-	go generate.Producer(context.Background(), generator, queues)
-
-	wg := new(sync.WaitGroup)
-	wg.Add(t.concurrency)
+	encoders := make([]*json.Encoder, t.concurrency)
 	for i := 0; i < t.concurrency; i++ {
 		filename := fmt.Sprintf("evidence.dat.%04d", t.child*t.concurrency+i)
 		file, err := os.Create(filepath.Join(t.output, filename))
 		if err != nil {
 			return fmt.Errorf("open output file error: %v", err)
 		}
-
-		go func(queue chan *pb.Transaction, out io.Writer) {
-			defer wg.Done()
-			if err := generate.WriteFile(queue, out, t.total/t.concurrency); err != nil {
-				log.Fatalf("store: write tx error: %v", err)
-			}
-		}(queues[i], file)
+		encoders[i] = json.NewEncoder(file)
 	}
-	wg.Wait()
+
+	total := int(float32(t.total/t.concurrency)*1.1)
+	cases.Consumer(total, t.concurrency, generator, func(i int, tx *pb.Transaction) error {
+		if err := encoders[i].Encode(tx); err != nil {
+			log.Fatalf("write tx error: %v", err)
+			return err
+		}
+		return nil
+	})
 
 	log.Printf("child=%d, pid=%d", t.child, os.Getpid())
 	return nil

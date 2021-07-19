@@ -8,7 +8,7 @@
         "./pb/googleapis"
     ],
     "tags": {
-        "bench_type": "contract",
+        "benchmark": "contract",
 
         "contract_account": "XC1234567890123456@xuper",
         "code_path": "./contract/short_content.wasm",

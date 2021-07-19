@@ -2,7 +2,7 @@
  * Copyright (c) 2021. Baidu Inc. All Rights Reserved.
  */
 
-package generate
+package lib
 
 import (
 	"encoding/hex"

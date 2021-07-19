@@ -1,4 +1,4 @@
-package generate
+package cases
 
 import (
 	"fmt"
@@ -35,7 +35,7 @@ func NewEvidence(config *Config) (Generator, error) {
 		return nil, fmt.Errorf("evidence length error: %v", err)
 	}
 
-	t.accounts, err = LoadAccount(t.concurrency)
+	t.accounts, err = lib.LoadAccount(t.concurrency)
 	if err != nil {
 		return nil, fmt.Errorf("load account error: %v", err)
 	}
@@ -64,10 +64,10 @@ func EvidenceTx(ak *account.Account, length int) *pb.Transaction {
 		Initiator: ak.Address,
 	}
 
-	SignTx(tx, ak)
+	lib.SignTx(tx, ak)
 	return tx
 }
 
 func init() {
-	RegisterGenerator(BenchmarkEvidence, NewEvidence)
+	RegisterGenerator(CaseEvidence, NewEvidence)
 }

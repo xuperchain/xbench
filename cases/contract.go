@@ -1,24 +1,25 @@
-package generate
+package cases
 
 import (
 	"fmt"
-	contracts "github.com/xuperchain/xbench/generate/contract"
-	"github.com/xuperchain/xuper-sdk-go/v2/account"
-	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
-	"github.com/xuperchain/xuperchain/service/pb"
 	"io/ioutil"
 	"log"
 	"strconv"
 	"strings"
 	"time"
+
+	contracts "github.com/xuperchain/xbench/cases/contract"
+	"github.com/xuperchain/xbench/lib"
+	"github.com/xuperchain/xuper-sdk-go/v2/account"
+	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
+	"github.com/xuperchain/xuperchain/service/pb"
 )
 
-const WaitDeploy = 5 // 等待部署合约完成 5s
+const WaitDeploy = 5 // 等待所有节点完成合约部署 5s
 
 // 调用sdk生成tx
 type contract struct {
 	host        string
-	total       int
 	concurrency int
 	split       int
 
@@ -32,7 +33,6 @@ type contract struct {
 func NewContract(config *Config) (Generator, error) {
 	t := &contract{
 		host: config.Host,
-		total: int(float32(config.Total)*1.1),
 		concurrency: config.Concurrency,
 		split: 10,
 
@@ -48,7 +48,7 @@ func NewContract(config *Config) (Generator, error) {
 	}
 
 	var err error
-	t.accounts, err = LoadAccount(t.concurrency)
+	t.accounts, err = lib.LoadAccount(t.concurrency)
 	if err != nil {
 		return nil, fmt.Errorf("load account error: %v", err)
 	}
@@ -60,10 +60,10 @@ func NewContract(config *Config) (Generator, error) {
 
 	t.contract, err = contracts.GetContract(t.config, t.client)
 	if err != nil {
-		return nil, fmt.Errorf("get NewContractFunc error: %v, contract=%s", err, t.config.ContractName)
+		return nil, fmt.Errorf("get contract error: %v, contract=%s", err, t.config.ContractName)
 	}
 
-	log.Printf("generate: type=contract, total=%d, concurrency=%d, contract=%s", t.total, t.concurrency, t.config.ContractName)
+	log.Printf("generate: type=contract, contract=%s, concurrency=%d", t.config.ContractName, t.concurrency)
 	return t, nil
 }
 
@@ -71,7 +71,7 @@ func NewContract(config *Config) (Generator, error) {
 func (t *contract) Init() error {
 	contractAccount := t.config.ContractAccount
 	// 创建合约账户
-	_, err := t.client.CreateContractAccount(BankAK, contractAccount)
+	_, err := t.client.CreateContractAccount(lib.BankAK, contractAccount)
 	if err != nil {
 		if !strings.Contains(err.Error(), "already exists") {
 			return fmt.Errorf("create account error: %v, account=%s", err, t.config.ContractAccount)
@@ -80,13 +80,13 @@ func (t *contract) Init() error {
 	}
 
 	// 转账给合约账户
-	_, err = t.client.Transfer(BankAK, contractAccount, "100000000")
+	_, err = t.client.Transfer(lib.BankAK, contractAccount, "100000000")
 	if err != nil {
 		return fmt.Errorf("transfer to contract account error: %v, contractAccount=%s", err, contractAccount)
 	}
 
 	// 部署合约
-	bank := BankAK
+	bank := lib.BankAK
 	if err := bank.SetContractAccount(contractAccount); err != nil {
 		return err
 	}
@@ -103,10 +103,12 @@ func (t *contract) Init() error {
 	}
 	bank.RemoveContractAccount()
 	log.Printf("deploy contract done")
+
+	// 等待部署合约完成
 	time.Sleep(WaitDeploy*time.Second)
 
 	// 转账给调用合约的账户
-	_, err = Transfer(t.client, BankAK, t.accounts, "100000000", t.split)
+	_, err = lib.Transfer(t.client, lib.BankAK, t.accounts, "100000000", t.split)
 	if err != nil {
 		return fmt.Errorf("contract to test accounts error: %v", err)
 	}
@@ -125,9 +127,10 @@ func (t *contract) Generate(id int) (*pb.Transaction, error) {
 		log.Printf("generate tx error: %v, address=%s", err, from.Address)
 		return nil, err
 	}
+
 	return tx.Tx, nil
 }
 
 func init() {
-	RegisterGenerator(BenchmarkContract, NewContract)
+	RegisterGenerator(CaseContract, NewContract)
 }
