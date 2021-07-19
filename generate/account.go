@@ -5,10 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
-	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
-	"github.com/xuperchain/xuperchain/service/pb"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -96,46 +93,4 @@ func GenAddress(concurrency int) {
 
 	addressPath := filepath.Join(dir, "../data/account/address.dat")
 	_ = ioutil.WriteFile(addressPath, buffer.Bytes(), 0644)
-}
-
-// 转账给初始化账户
-func Transfer(client *xuper.XClient, from *account.Account, accounts []*account.Account, amount string, split int) ([]*pb.Transaction, error) {
-	log.Printf("transfer start")
-
-	txs := make([]*pb.Transaction, 0, len(accounts))
-	for _, to := range accounts {
-		tx, err := client.Transfer(from, to.Address, amount, xuper.WithNotPost())
-		if err != nil {
-			return nil, err
-		}
-
-		txOutputs := make([]*pb.TxOutput, 0, len(tx.Tx.TxOutputs)+split)
-		for _, txOutput := range tx.Tx.TxOutputs {
-			if bytes.Equal(txOutput.ToAddr, []byte(to.Address)) {
-				txOutputs = append(txOutputs, Split(txOutput, split)...)
-			} else {
-				txOutputs = append(txOutputs, txOutput)
-			}
-		}
-
-		tx.DigestHash = nil
-		tx.Tx.TxOutputs = txOutputs
-		tx.Tx.AuthRequireSigns = nil
-		tx.Tx.InitiatorSigns = nil
-		err = tx.Sign(from)
-		if err != nil {
-			return nil, err
-		}
-
-		tx, err = client.PostTx(tx)
-		if err != nil {
-			return nil, err
-		}
-
-		txs = append(txs, tx.Tx)
-		//log.Printf("address=%s, txid=%x", to.Address, tx.Tx.Txid)
-	}
-
-	log.Printf("transfer done")
-	return txs, nil
 }

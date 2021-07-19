@@ -1,10 +1,10 @@
 package generate
 
 import (
+	"fmt"
 	"github.com/xuperchain/xuperchain/service/pb"
 	"log"
 	"strconv"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -12,63 +12,110 @@ import (
 )
 
 type evidence struct {
-	// 总量
 	total       int
-	// 存证大小
-	length      int
-	// 并发量
 	concurrency int
-	// 一个批次生产的交易量
+	length      int
 	batch       int
 
-	queue       chan []*pb.Transaction
+	accounts    []*account.Account
 }
 
-func NewEvidence(total, concurrency, length, batch int) (Generator, error) {
+func NewEvidence(config *Config) (*evidence, error) {
 	t := &evidence{
-		total: total,
-		concurrency: concurrency,
-		length: length,
-		batch: batch,
-		queue: make(chan []*pb.Transaction, 10*concurrency),
+		total: config.Total,
+		concurrency: config.Concurrency,
+		batch: 1000,
 	}
 
-	go func(t *evidence) {
-		var count int64
-		wg := new(sync.WaitGroup)
-		for i := 0; i < t.concurrency; i++ {
-			wg.Add(1)
-			go func() {
-				t.worker(&count)
-				wg.Done()
-			}()
-		}
-		wg.Wait()
-		close(t.queue)
-	}(t)
+	var err error
+	t.length, err = strconv.Atoi(config.Args["length"])
+	if err != nil {
+		return nil, fmt.Errorf("evidence length error: %v", err)
+	}
+
+	t.accounts, err = LoadAccount(t.concurrency)
+	if err != nil {
+		return nil, fmt.Errorf("load account error: %v", err)
+	}
+
+	log.Printf("generate: type=evidence, total=%d, concurrency=%d, length=%d",
+		t.total, t.concurrency, t.length)
 	return t, nil
 }
 
-func (t *evidence) Generate() chan []*pb.Transaction {
-	return t.queue
+func (t *evidence) Init() error {
+	return nil
 }
 
-func (t *evidence) worker(count *int64) {
-	total := t.total / t.concurrency
-	for i := 0; i < total; i += t.batch {
-		txs := make([]*pb.Transaction, t.batch)
-		for j := 0; j < t.batch; j++ {
-			txs[j] = EvidenceTx(BankAK, t.length)
-		}
-
-		t.queue <- txs
-
-		total := atomic.AddInt64(count, int64(t.batch))
-		if total%100000 == 0 {
-			log.Printf("count=%d\n", total)
-		}
+func (t *evidence) Generate() []chan *pb.Transaction {
+	queues := make([]chan *pb.Transaction, t.concurrency)
+	for i := 0; i < t.concurrency; i++ {
+		queues[i] = make(chan *pb.Transaction, t.concurrency)
 	}
+
+	var count int64
+	total := t.total / t.concurrency
+	provider := func(i int) {
+		ak := t.accounts[i]
+		for j := 0; j < total; j++ {
+			tx := EvidenceTx(ak, t.length)
+			queues[i] <- tx
+
+			if (j+1) % t.concurrency == 0 {
+				total := atomic.AddInt64(&count, int64(t.concurrency))
+				if total%100000 == 0 {
+					log.Printf("count=%d\n", total)
+				}
+			}
+		}
+
+		close(queues[i])
+	}
+
+	for i := 0; i < t.concurrency; i++ {
+		go provider(i)
+	}
+
+	return queues
 }
+
+// 批量生成: 10w tps
+// TODO: chan 读写成为瓶颈？
+func (t *evidence) BatchGenerate() []chan []*pb.Transaction {
+	queues := make([]chan []*pb.Transaction, t.concurrency)
+	for i := 0; i < t.concurrency; i++ {
+		queues[i] = make(chan []*pb.Transaction, t.concurrency)
+	}
+
+	var count int64
+	total := t.total / t.concurrency
+	provider := func(i int) {
+		ak := t.accounts[i]
+		batch := make([]*pb.Transaction, t.batch)
+		for j := 0; j < total; j++ {
+			batch[j%t.batch] = EvidenceTx(ak, t.length)
+
+			if (j+1) % t.batch == 0 {
+				queues[i] <- batch
+				batch = make([]*pb.Transaction, t.batch)
+
+				total := atomic.AddInt64(&count, int64(t.batch))
+				if total%100000 == 0 {
+					log.Printf("count=%d\n", total)
+				}
+			}
+		}
+
+		close(queues[i])
+	}
+
+	for i := 0; i < t.concurrency; i++ {
+		go provider(i)
+	}
+
+	return queues
+}
+
 
 func EvidenceTx(ak *account.Account, length int) *pb.Transaction {
 	tx := &pb.Transaction{

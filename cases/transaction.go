@@ -5,28 +5,23 @@ import (
 	"github.com/bojand/ghz/runner"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/xuperchain/xbench/generate"
-	"github.com/xuperchain/xuper-sdk-go/v2/account"
-	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
 	"github.com/xuperchain/xuperchain/service/pb"
-	"strconv"
-	"strings"
 )
 
 type transaction struct{
 	total       int
-	split       int
 	concurrency int
+	config      runner.Config
 
-	client      *xuper.XClient
-	accounts    []*account.Account
 	providers   []chan *pb.Transaction
-	generator   generate.SDKGenerator
+	generator   generate.Generator
 }
 
 func NewTransaction(config runner.Config) (Provider, error) {
 	t := &transaction{
 		total: int(config.N),
 		concurrency: int(config.C),
+		config: config,
 	}
 
 	if config.CEnd > config.C {
@@ -34,7 +29,13 @@ func NewTransaction(config runner.Config) (Provider, error) {
 	}
 
 	var err error
-	t.generator, err = generate.NewTransfer(config.Host, t.concurrency)
+	conf := &generate.Config{
+		Host: config.Host,
+		Total: t.total,
+		Concurrency: t.concurrency,
+		Args: config.Tags,
+	}
+	t.generator, err = generate.NewTransfer(conf)
 	if err != nil {
 		return nil, fmt.Errorf("new generator error: %v", err)
 	}
@@ -47,14 +48,8 @@ func NewTransaction(config runner.Config) (Provider, error) {
 	return t, nil
 }
 
-func getWorkID(workID string) int {
-	workIdStr := strings.Split(workID[1:], "c")[0]
-	workId, _ := strconv.Atoi(workIdStr)
-	return workId
-}
-
 func (t *transaction) DataProvider(run *runner.CallData) ([]*dynamic.Message, error) {
-	workID := getWorkID(run.WorkerID)
+	workID := generate.WorkID(run.WorkerID)
 	tx, ok := <- t.providers[workID]
 	if !ok {
 		return nil, fmt.Errorf("data provider close")

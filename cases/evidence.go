@@ -3,55 +3,60 @@ package cases
 import (
 	"fmt"
 	"github.com/bojand/ghz/runner"
-	"github.com/golang/protobuf/proto"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/xuperchain/xbench/generate"
-	"strconv"
+	"github.com/xuperchain/xuperchain/service/pb"
 )
 
 type evidence struct{
 	total       int
 	concurrency int
-	batch       int
-
-	length      int
 
 	generator   generate.Generator
-	provider    chan proto.Message
+	providers   []chan *pb.Transaction
 }
 
 func NewEvidence(config runner.Config) (Provider, error) {
-	length, err := strconv.Atoi(config.Tags["length"])
 	t := &evidence{
 		total: int(config.N),
 		concurrency: int(config.C),
-		batch: int(config.C),
-
-		length: length,
+	}
+	if config.CEnd > config.C {
+		t.concurrency = int(config.CEnd)
 	}
 
-	t.generator, err = generate.NewEvidence(t.total, t.concurrency, t.length, t.batch)
+	var err error
+	conf := &generate.Config{
+		Total: t.total,
+		Concurrency: t.concurrency,
+		Args: config.Tags,
+	}
+	t.generator, err = generate.NewEvidence(conf)
 	if err != nil {
 		return nil, fmt.Errorf("new evidence error: %v", err)
 	}
 
-	t.provider = make(chan proto.Message, 10*t.concurrency)
-	go func() {
-		for txs := range t.generator.Generate() {
-			for _, tx := range txs {
-				t.provider <- tx
-			}
-		}
-	}()
+	if err := t.generator.Init(); err != nil {
+		return nil, fmt.Errorf("init generator error: %v", err)
+	}
+
+	t.providers = t.generator.Generate()
 	return t, nil
 }
 
-func (t *evidence) DataProvider(*runner.CallData) ([]*dynamic.Message, error) {
-	msg, ok := <- t.provider
+func (t *evidence) DataProvider(run *runner.CallData) ([]*dynamic.Message, error) {
+	workID := generate.WorkID(run.WorkerID)
+	tx, ok := <- t.providers[workID]
 	if !ok {
 		return nil, fmt.Errorf("data provider close")
 	}
 
+	msg := &pb.TxStatus{
+		Bcname: BlockChain,
+		Status: pb.TransactionStatus_UNCONFIRM,
+		Tx:     tx,
+		Txid:   tx.Txid,
+	}
 	dynamicMsg, err := dynamic.AsDynamicMessage(msg)
 	if err != nil {
 		return nil, err

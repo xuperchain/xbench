@@ -7,6 +7,8 @@ import (
 	"github.com/xuperchain/xuperchain/service/pb"
 	"github.com/xuperchain/xupercore/lib/crypto/client"
 	"math/rand"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -50,4 +52,11 @@ func FormatTx(tx *pb.Transaction) []byte {
 	t := FromPBTx(tx)
 	data, _ := json.MarshalIndent(t, "", "  ")
 	return data
+}
+
+
+func WorkID(workID string) int {
+	workIdStr := strings.Split(workID[1:], "c")[0]
+	workId, _ := strconv.Atoi(workIdStr)
+	return workId
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019. Baidu Inc. All Rights Reserved.
+ * Copyright (c) 2021. Baidu Inc. All Rights Reserved.
  */
 
 package generate
@@ -7,9 +7,9 @@ package generate
 import (
 	"encoding/hex"
 	"encoding/json"
-	"github.com/xuperchain/xuperchain/service/pb"
 	"math/big"
 
+	"github.com/xuperchain/xuperchain/service/pb"
 )
 
 // HexID bytes
@@ -134,15 +134,15 @@ type Transaction struct {
 	Version           int32            `json:"version"`
 	Autogen           bool             `json:"autogen"`
 	Coinbase          bool             `json:"coinbase"`
-	//TxInputsExt       []TxInputExt     `json:"txInputsExt"`
-	//TxOutputsExt      []TxOutputExt    `json:"txOutputsExt"`
-	//ContractRequests  []*InvokeRequest `json:"contractRequests"`
+	TxInputsExt       []TxInputExt     `json:"txInputsExt"`
+	TxOutputsExt      []TxOutputExt    `json:"txOutputsExt"`
+	ContractRequests  []*InvokeRequest `json:"contractRequests"`
 	Initiator         string           `json:"initiator"`
-	//AuthRequire       []string         `json:"authRequire"`
+	AuthRequire       []string         `json:"authRequire"`
 	InitiatorSigns    []SignatureInfo  `json:"initiatorSigns"`
-	//AuthRequireSigns  []SignatureInfo  `json:"authRequireSigns"`
+	AuthRequireSigns  []SignatureInfo  `json:"authRequireSigns"`
 	ReceivedTimestamp int64            `json:"receivedTimestamp"`
-	//ModifyBlock       ModifyBlock      `json:"modifyBlock"`
+	ModifyBlock       ModifyBlock      `json:"modifyBlock"`
 }
 
 type ModifyBlock struct {
@@ -177,7 +177,7 @@ func FromPBTx(tx *pb.Transaction) *Transaction {
 		Version:           tx.Version,
 		Desc:              string(tx.Desc),
 		Autogen:           tx.Autogen,
-		//Coinbase:          tx.Coinbase,
+		Coinbase:          tx.Coinbase,
 		Initiator:         tx.Initiator,
 		ReceivedTimestamp: tx.ReceivedTimestamp,
 	}
@@ -195,45 +195,45 @@ func FromPBTx(tx *pb.Transaction) *Transaction {
 			ToAddr: string(output.ToAddr),
 		})
 	}
-	//for _, inputExt := range tx.TxInputsExt {
-	//	t.TxInputsExt = append(t.TxInputsExt, TxInputExt{
-	//		Bucket:    inputExt.Bucket,
-	//		Key:       string(inputExt.Key),
-	//		RefTxid:   inputExt.RefTxid,
-	//		RefOffset: inputExt.RefOffset,
-	//	})
-	//}
-	//for _, outputExt := range tx.TxOutputsExt {
-	//	t.TxOutputsExt = append(t.TxOutputsExt, TxOutputExt{
-	//		Bucket: outputExt.Bucket,
-	//		Key:    string(outputExt.Key),
-	//		Value:  string(outputExt.Value),
-	//	})
-	//}
-	//if tx.ContractRequests != nil {
-	//	for i := 0; i < len(tx.ContractRequests); i++ {
-	//		req := tx.ContractRequests[i]
-	//		tmpReq := &InvokeRequest{
-	//			ModuleName:   req.ModuleName,
-	//			ContractName: req.ContractName,
-	//			MethodName:   req.MethodName,
-	//			Args:         map[string]string{},
-	//		}
-	//		for argKey, argV := range req.Args {
-	//			tmpReq.Args[argKey] = string(argV)
-	//		}
-	//		for _, rlimit := range req.ResourceLimits {
-	//			resource := ResourceLimit{
-	//				Type:  rlimit.Type.String(),
-	//				Limit: rlimit.Limit,
-	//			}
-	//			tmpReq.ResouceLimits = append(tmpReq.ResouceLimits, resource)
-	//		}
-	//		t.ContractRequests = append(t.ContractRequests, tmpReq)
-	//	}
-	//}
-    //
-	//t.AuthRequire = append(t.AuthRequire, tx.AuthRequire...)
+	for _, inputExt := range tx.TxInputsExt {
+		t.TxInputsExt = append(t.TxInputsExt, TxInputExt{
+			Bucket:    inputExt.Bucket,
+			Key:       string(inputExt.Key),
+			RefTxid:   inputExt.RefTxid,
+			RefOffset: inputExt.RefOffset,
+		})
+	}
+	for _, outputExt := range tx.TxOutputsExt {
+		t.TxOutputsExt = append(t.TxOutputsExt, TxOutputExt{
+			Bucket: outputExt.Bucket,
+			Key:    string(outputExt.Key),
+			Value:  string(outputExt.Value),
+		})
+	}
+	if tx.ContractRequests != nil {
+		for i := 0; i < len(tx.ContractRequests); i++ {
+			req := tx.ContractRequests[i]
+			tmpReq := &InvokeRequest{
+				ModuleName:   req.ModuleName,
+				ContractName: req.ContractName,
+				MethodName:   req.MethodName,
+				Args:         map[string]string{},
+			}
+			for argKey, argV := range req.Args {
+				tmpReq.Args[argKey] = string(argV)
+			}
+			for _, rlimit := range req.ResourceLimits {
+				resource := ResourceLimit{
+					Type:  rlimit.Type.String(),
+					Limit: rlimit.Limit,
+				}
+				tmpReq.ResouceLimits = append(tmpReq.ResouceLimits, resource)
+			}
+			t.ContractRequests = append(t.ContractRequests, tmpReq)
+		}
+	}
+
+	t.AuthRequire = append(t.AuthRequire, tx.AuthRequire...)
 
 	for _, initsign := range tx.InitiatorSigns {
 		t.InitiatorSigns = append(t.InitiatorSigns, SignatureInfo{
@@ -241,21 +241,21 @@ func FromPBTx(tx *pb.Transaction) *Transaction {
 			Sign:      initsign.Sign,
 		})
 	}
-    //
-	//for _, authSign := range tx.AuthRequireSigns {
-	//	t.AuthRequireSigns = append(t.AuthRequireSigns, SignatureInfo{
-	//		PublicKey: authSign.PublicKey,
-	//		Sign:      authSign.Sign,
-	//	})
-	//}
-    //
-	//if tx.ModifyBlock != nil {
-	//	t.ModifyBlock = ModifyBlock{
-	//		EffectiveHeight: tx.ModifyBlock.EffectiveHeight,
-	//		Marked:          tx.ModifyBlock.Marked,
-	//		EffectiveTxid:   tx.ModifyBlock.EffectiveTxid,
-	//	}
-	//}
+
+	for _, authSign := range tx.AuthRequireSigns {
+		t.AuthRequireSigns = append(t.AuthRequireSigns, SignatureInfo{
+			PublicKey: authSign.PublicKey,
+			Sign:      authSign.Sign,
+		})
+	}
+
+	if tx.ModifyBlock != nil {
+		t.ModifyBlock = ModifyBlock{
+			EffectiveHeight: tx.ModifyBlock.EffectiveHeight,
+			Marked:          tx.ModifyBlock.Marked,
+			EffectiveTxid:   tx.ModifyBlock.EffectiveTxid,
+		}
+	}
 	return t
 }
 
@@ -386,4 +386,145 @@ type ChainStatus struct {
 	UtxoMeta   UtxoMeta   `json:"utxo"`
 	// add BranchBlockid
 	BranchBlockid []string `json:"branchBlockid"`
+}
+
+// SystemStatus proto.SystemStatus
+type SystemStatus struct {
+	ChainStatus []ChainStatus `json:"blockchains"`
+	Peers       []string      `json:"peers"`
+	Speeds      *pb.Speeds    `json:"speeds"`
+}
+
+// FromSystemStatusPB systemstatus info
+func FromSystemStatusPB(statuspb *pb.SystemsStatus) *SystemStatus {
+	status := &SystemStatus{}
+	for _, chain := range statuspb.GetBcsStatus() {
+		ledgerMeta := chain.GetMeta()
+		utxoMeta := chain.GetUtxoMeta()
+		ReservedContracts := utxoMeta.GetReservedContracts()
+		rcs := []InvokeRequest{}
+		for _, rcpb := range ReservedContracts {
+			args := map[string]string{}
+			for k, v := range rcpb.GetArgs() {
+				args[k] = string(v)
+			}
+			rc := InvokeRequest{
+				ModuleName:   rcpb.GetModuleName(),
+				ContractName: rcpb.GetContractName(),
+				MethodName:   rcpb.GetMethodName(),
+				Args:         args,
+			}
+			rcs = append(rcs, rc)
+		}
+		forbiddenContract := utxoMeta.GetForbiddenContract()
+		args := forbiddenContract.GetArgs()
+		originalArgs := map[string]string{}
+		for key, value := range args {
+			originalArgs[key] = string(value)
+		}
+		forbiddenContractMap := InvokeRequest{
+			ModuleName:   forbiddenContract.GetModuleName(),
+			ContractName: forbiddenContract.GetContractName(),
+			MethodName:   forbiddenContract.GetMethodName(),
+			Args:         originalArgs,
+		}
+		gasPricePB := utxoMeta.GetGasPrice()
+		gasPrice := GasPrice{
+			CpuRate:  gasPricePB.GetCpuRate(),
+			MemRate:  gasPricePB.GetMemRate(),
+			DiskRate: gasPricePB.GetDiskRate(),
+			XfeeRate: gasPricePB.GetXfeeRate(),
+		}
+		status.ChainStatus = append(status.ChainStatus, ChainStatus{
+			Name: chain.GetBcname(),
+			LedgerMeta: LedgerMeta{
+				RootBlockid: ledgerMeta.GetRootBlockid(),
+				TipBlockid:  ledgerMeta.GetTipBlockid(),
+				TrunkHeight: ledgerMeta.GetTrunkHeight(),
+			},
+			UtxoMeta: UtxoMeta{
+				LatestBlockid:            utxoMeta.GetLatestBlockid(),
+				LockKeyList:              utxoMeta.GetLockKeyList(),
+				UtxoTotal:                utxoMeta.GetUtxoTotal(),
+				AvgDelay:                 utxoMeta.GetAvgDelay(),
+				UnconfirmTxAmount:        utxoMeta.GetUnconfirmTxAmount(),
+				MaxBlockSize:             utxoMeta.GetMaxBlockSize(),
+				NewAccountResourceAmount: utxoMeta.GetNewAccountResourceAmount(),
+				ReservedContracts:        rcs,
+				ForbiddenContract:        forbiddenContractMap,
+				// Irreversible block height & slide window
+				IrreversibleBlockHeight: utxoMeta.GetIrreversibleBlockHeight(),
+				IrreversibleSlideWindow: utxoMeta.GetIrreversibleSlideWindow(),
+				// add GasPrice value
+				GasPrice: gasPrice,
+			},
+			BranchBlockid: chain.GetBranchBlockid(),
+		})
+	}
+	status.Peers = statuspb.GetPeerUrls()
+	status.Speeds = statuspb.GetSpeeds()
+	return status
+}
+
+// TriggerDesc proto.TriggerDesc
+type TriggerDesc struct {
+	Module string      `json:"module"`
+	Method string      `json:"method"`
+	Args   interface{} `json:"args"`
+	Height int64       `json:"height"`
+}
+
+// ContractDesc proto.ContractDesc
+type ContractDesc struct {
+	Module  string      `json:"module"`
+	Method  string      `json:"method"`
+	Args    interface{} `json:"args"`
+	Trigger TriggerDesc `json:"trigger"`
+}
+
+// FilteredBlock pb.FilteredBlock
+type FilteredBlock struct {
+	Bcname      string                 `json:"bcname,omitempty"`
+	Blockid     string                 `json:"blockid,omitempty"`
+	BlockHeight int64                  `json:"block_height,omitempty"`
+	Txs         []*FilteredTransaction `json:"txs,omitempty"`
+}
+
+// FilteredTransaction pb.FilteredTransaction
+type FilteredTransaction struct {
+	Txid   string           `json:"txid,omitempty"`
+	Events []*ContractEvent `json:"events,omitempty"`
+}
+
+// ContractEvent pb.ContractEvent
+type ContractEvent struct {
+	Contract string `json:"contract,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Body     string `json:"body,omitempty"`
+}
+
+// FromFilteredBlockPB convert pb.FilteredBlock to FilteredBlock
+func FromFilteredBlockPB(pbblock *pb.FilteredBlock) *FilteredBlock {
+	block := &FilteredBlock{
+		Bcname:      pbblock.Bcname,
+		Blockid:     pbblock.Blockid,
+		BlockHeight: pbblock.BlockHeight,
+		Txs:         make([]*FilteredTransaction, 0, len(pbblock.Txs)),
+	}
+
+	for _, pbtx := range pbblock.Txs {
+		tx := &FilteredTransaction{
+			Txid:   pbtx.Txid,
+			Events: make([]*ContractEvent, 0, len(pbtx.Events)),
+		}
+		for _, pbevent := range pbtx.Events {
+			tx.Events = append(tx.Events, &ContractEvent{
+				Contract: pbevent.Contract,
+				Name:     pbevent.Name,
+				Body:     string(pbevent.Body),
+			})
+		}
+		block.Txs = append(block.Txs, tx)
+	}
+	return block
 }
