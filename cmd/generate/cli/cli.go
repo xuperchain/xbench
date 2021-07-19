@@ -1,9 +1,9 @@
 package cli
 
 import (
-    "github.com/spf13/cobra"
-    "log"
-    "os"
+	"github.com/spf13/cobra"
+	"log"
+	"os"
 )
 
 // CommandFunc 代表了一个子命令，用于往Cli注册子命令
@@ -15,8 +15,7 @@ var (
 )
 
 // RootOptions 代表全局通用的flag，可以以嵌套结构体的方式组织flags.
-type Options struct {
-}
+type Options struct {}
 
 // Cli 是所有子命令执行的上下文.
 type Cli struct {

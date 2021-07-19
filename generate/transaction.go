@@ -8,7 +8,6 @@ import (
 	"log"
 	"math/big"
 	"strconv"
-	"sync/atomic"
 	"time"
 )
 
@@ -55,37 +54,12 @@ func (t *transaction) Init() error {
 	return nil
 }
 
-func (t *transaction) Generate() []chan *pb.Transaction {
-	queues := make([]chan *pb.Transaction, t.concurrency)
-	for i := 0; i < t.concurrency; i++ {
-		queues[i] = make(chan *pb.Transaction, t.concurrency)
-	}
-
-	var count int64
-	total := t.total / t.concurrency
-	provider := func(i int) {
-		ak := t.accounts[i]
-		tx := t.bootTxs[i]
-		for j := 0; j < total; j++ {
-			child := Fork(tx, ak)
-			queues[i] <- child
-			tx = child
-			if (j+1) % t.concurrency == 0 {
-				total := atomic.AddInt64(&count, int64(t.concurrency))
-				if total%100000 == 0 {
-					log.Printf("count=%d\n", total)
-				}
-			}
-		}
-
-		close(queues[i])
-	}
-
-	for i := 0; i < t.concurrency; i++ {
-		go provider(i)
-	}
-
-	return queues
+func (t *transaction) Generate(id int) (*pb.Transaction, error){
+	tx := t.bootTxs[id]
+	ak := t.accounts[id]
+	child := Fork(tx, ak)
+	t.bootTxs[id] = child
+	return child, nil
 }
 
 func Fork(tx *pb.Transaction, ak *account.Account) *pb.Transaction {
@@ -149,4 +123,8 @@ func Split(txOutput *pb.TxOutput, split int) []*pb.TxOutput {
 	txOutputs = append(txOutputs, &output)
 
 	return txOutputs
+}
+
+func init() {
+	RegisterGenerator(BenchmarkTransaction, NewTransaction)
 }

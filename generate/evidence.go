@@ -2,16 +2,17 @@ package generate
 
 import (
 	"fmt"
+	"github.com/xuperchain/xbench/lib"
 	"github.com/xuperchain/xuperchain/service/pb"
 	"log"
 	"strconv"
-	"sync/atomic"
 	"time"
 
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 )
 
 type evidence struct {
+	host        string
 	total       int
 	concurrency int
 	length      int
@@ -20,8 +21,9 @@ type evidence struct {
 	accounts    []*account.Account
 }
 
-func NewEvidence(config *Config) (*evidence, error) {
+func NewEvidence(config *Config) (Generator, error) {
 	t := &evidence{
+		host: config.Host,
 		total: config.Total,
 		concurrency: config.Concurrency,
 		batch: 1000,
@@ -47,80 +49,16 @@ func (t *evidence) Init() error {
 	return nil
 }
 
-func (t *evidence) Generate() []chan *pb.Transaction {
-	queues := make([]chan *pb.Transaction, t.concurrency)
-	for i := 0; i < t.concurrency; i++ {
-		queues[i] = make(chan *pb.Transaction, t.concurrency)
-	}
-
-	var count int64
-	total := t.total / t.concurrency
-	provider := func(i int) {
-		ak := t.accounts[i]
-		for j := 0; j < total; j++ {
-			tx := EvidenceTx(ak, t.length)
-			queues[i] <- tx
-
-			if (j+1) % t.concurrency == 0 {
-				total := atomic.AddInt64(&count, int64(t.concurrency))
-				if total%100000 == 0 {
-					log.Printf("count=%d\n", total)
-				}
-			}
-		}
-
-		close(queues[i])
-	}
-
-	for i := 0; i < t.concurrency; i++ {
-		go provider(i)
-	}
-
-	return queues
+func (t *evidence) Generate(id int) (*pb.Transaction, error) {
+	ak := t.accounts[id]
+	tx := EvidenceTx(ak, t.length)
+	return tx, nil
 }
-
-// 批量生成: 10w tps
-// TODO: chan 读写成为瓶颈？
-func (t *evidence) BatchGenerate() []chan []*pb.Transaction {
-	queues := make([]chan []*pb.Transaction, t.concurrency)
-	for i := 0; i < t.concurrency; i++ {
-		queues[i] = make(chan []*pb.Transaction, t.concurrency)
-	}
-
-	var count int64
-	total := t.total / t.concurrency
-	provider := func(i int) {
-		ak := t.accounts[i]
-		batch := make([]*pb.Transaction, t.batch)
-		for j := 0; j < total; j++ {
-			batch[j%t.batch] = EvidenceTx(ak, t.length)
-
-			if (j+1) % t.batch == 0 {
-				queues[i] <- batch
-				batch = make([]*pb.Transaction, t.batch)
-
-				total := atomic.AddInt64(&count, int64(t.batch))
-				if total%100000 == 0 {
-					log.Printf("count=%d\n", total)
-				}
-			}
-		}
-
-		close(queues[i])
-	}
-
-	for i := 0; i < t.concurrency; i++ {
-		go provider(i)
-	}
-
-	return queues
-}
-
 
 func EvidenceTx(ak *account.Account, length int) *pb.Transaction {
 	tx := &pb.Transaction{
 		Version:   3,
-		Desc:      RandBytes(length),
+		Desc:      lib.RandBytes(length),
 		Nonce:     strconv.FormatInt(time.Now().UnixNano(), 36),
 		Timestamp: time.Now().UnixNano(),
 		Initiator: ak.Address,
@@ -128,4 +66,8 @@ func EvidenceTx(ak *account.Account, length int) *pb.Transaction {
 
 	SignTx(tx, ak)
 	return tx
+}
+
+func init() {
+	RegisterGenerator(BenchmarkEvidence, NewEvidence)
 }

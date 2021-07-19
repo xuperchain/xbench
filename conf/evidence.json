@@ -8,7 +8,8 @@
         "./pb/googleapis"
     ],
     "tags": {
-        "benchmark": "transaction"
+        "benchmark": "evidence",
+        "length": "256"
     },
     "host": "10.117.130.40:32101"
 }

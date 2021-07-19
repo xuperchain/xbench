@@ -8,14 +8,7 @@
         "./pb/googleapis"
     ],
     "tags": {
-        "benchmark": "contract",
-
-        "contract_account": "XC1111111111111111@xuper",
-        "code_path": "./contract/counter.wasm",
-
-        "module_name":"wasm",
-        "contract_name":"counter",
-        "method_name":"increase"
+        "benchmark": "transfer"
     },
     "host": "10.117.130.40:32101"
 }

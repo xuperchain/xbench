@@ -8,13 +8,11 @@ import (
 	"github.com/xuperchain/xuperchain/service/pb"
 	"log"
 	"math/rand"
-	"sync/atomic"
 )
 
 // 调用sdk生成tx
 type transfer struct {
 	host        string
-	total       int
 	concurrency int
 	split       int
 
@@ -25,7 +23,6 @@ type transfer struct {
 func NewTransfer(config *Config) (Generator, error) {
 	t := &transfer{
 		host: config.Host,
-		total: int(float32(config.Total)*1.1),
 		concurrency: config.Concurrency,
 		split: 10,
 	}
@@ -41,7 +38,7 @@ func NewTransfer(config *Config) (Generator, error) {
 		return nil, fmt.Errorf("new xuper client error: %v", err)
 	}
 
-	log.Printf("generate: type=transfer, total=%d, concurrency=%d", t.total, t.concurrency)
+	log.Printf("generate: type=transfer, concurrency=%d", t.concurrency)
 	return t, nil
 }
 
@@ -54,77 +51,16 @@ func (t *transfer) Init() error {
 	return nil
 }
 
-func (t *transfer) Generate() []chan *pb.Transaction {
-	queues := make([]chan *pb.Transaction, t.concurrency)
-	for i := 0; i < t.concurrency; i++ {
-		queues[i] = make(chan *pb.Transaction, 1)
-	}
-
-	var count int64
-	length := len(t.accounts)
-	total := t.total / t.concurrency
-	provider := func(i int) {
-		from := t.accounts[i]
-		for j := 0; j < total; j++ {
-			to := t.accounts[rand.Intn(length)]
-			tx, err := t.client.Transfer(from, to.Address, "10", xuper.WithNotPost())
-			if err != nil {
-				log.Printf("generate tx error: %v, address=%s", err, from.Address)
-				return
-			}
-
-			queues[i] <- tx.Tx
-			if (j+1) % t.concurrency == 0 {
-				total := atomic.AddInt64(&count, int64(t.concurrency))
-				if total%100000 == 0 {
-					log.Printf("count=%d\n", total)
-				}
-			}
-		}
-
-		close(queues[i])
-	}
-
-	for i := 0; i < t.concurrency; i++ {
-		go provider(i)
-	}
-
-	return queues
-}
-
-// 分裂账户余额，避免并发请求时 "no enough money"
-func SplitTx(host string, ak *account.Account, split int) error {
-	client, err := xuper.New(host)
+func (t *transfer) Generate(id int) (*pb.Transaction, error) {
+	from := t.accounts[id]
+	to := t.accounts[rand.Intn(len(t.accounts))]
+	tx, err := t.client.Transfer(from, to.Address, "10", xuper.WithNotPost())
 	if err != nil {
-		return fmt.Errorf("new xuper client error: %v", err)
+		log.Printf("generate tx error: %v, address=%s", err, from.Address)
+		return nil, err
 	}
 
-	amount := fmt.Sprintf("%d00000000", split)
-	tx, err := client.Transfer(ak, ak.Address, amount, xuper.WithNotPost())
-	if err != nil {
-		return fmt.Errorf("transfer tx error: %v", err)
-	}
-	
-	txOutputs := make([]*pb.TxOutput, 0, len(tx.Tx.TxOutputs)+split)
-	txOutputs = append(txOutputs, Split(tx.Tx.TxOutputs[0], split)...)
-	txOutputs = append(txOutputs, tx.Tx.TxOutputs[1:]...)
-
-	tx.DigestHash = nil
-	tx.Tx.TxOutputs = txOutputs
-	tx.Tx.AuthRequireSigns = nil
-	tx.Tx.InitiatorSigns = nil
-	err = tx.Sign(ak)
-	if err != nil {
-		return fmt.Errorf("sign error: %v", err)
-	}
-
-	tx, err = client.PostTx(tx)
-	if err != nil {
-		return fmt.Errorf("post tx error: %v", err)
-	}
-
-	log.Printf("split tx done, tx=%x", tx.Tx.Txid)
-	return nil
+	return tx.Tx, nil
 }
 
 // 转账给初始化账户
@@ -167,4 +103,44 @@ func Transfer(client *xuper.XClient, from *account.Account, accounts []*account.
 
 	log.Printf("transfer done")
 	return txs, nil
+}
+
+
+// 分裂账户余额，避免并发请求时 "no enough money"
+func SplitTx(host string, ak *account.Account, split int) error {
+	client, err := xuper.New(host)
+	if err != nil {
+		return fmt.Errorf("new xuper client error: %v", err)
+	}
+
+	amount := fmt.Sprintf("%d00000000", split)
+	tx, err := client.Transfer(ak, ak.Address, amount, xuper.WithNotPost())
+	if err != nil {
+		return fmt.Errorf("transfer tx error: %v", err)
+	}
+
+	txOutputs := make([]*pb.TxOutput, 0, len(tx.Tx.TxOutputs)+split)
+	txOutputs = append(txOutputs, Split(tx.Tx.TxOutputs[0], split)...)
+	txOutputs = append(txOutputs, tx.Tx.TxOutputs[1:]...)
+
+	tx.DigestHash = nil
+	tx.Tx.TxOutputs = txOutputs
+	tx.Tx.AuthRequireSigns = nil
+	tx.Tx.InitiatorSigns = nil
+	err = tx.Sign(ak)
+	if err != nil {
+		return fmt.Errorf("sign error: %v", err)
+	}
+
+	tx, err = client.PostTx(tx)
+	if err != nil {
+		return fmt.Errorf("post tx error: %v", err)
+	}
+
+	log.Printf("split tx done, tx=%x", tx.Tx.Txid)
+	return nil
+}
+
+func init() {
+	RegisterGenerator(BenchmarkTransfer, NewTransfer)
 }

@@ -294,12 +294,12 @@ func main() {
 
 	var logger *zap.SugaredLogger
 
-	dataProvider, err := cases.MakeDataProvider(cfg)
+	provider, err := cases.NewProvider(cfg)
 	if err != nil {
 		handleError(err)
 	}
 
-	options := []runner.Option{runner.WithConfig(&cfg), runner.WithDataProvider(dataProvider)}
+	options := []runner.Option{runner.WithConfig(&cfg), runner.WithDataProvider(provider.DataProvider)}
 	if len(cfg.Debug) > 0 {
 		var err error
 		logger, err = createLogger(cfg.Debug)

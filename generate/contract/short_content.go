@@ -2,7 +2,7 @@ package contracts
 
 import (
 	"fmt"
-	"github.com/xuperchain/xbench/generate"
+	"github.com/xuperchain/xbench/lib"
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
 	"strconv"
@@ -15,7 +15,7 @@ type shortContent struct {
 	config *ContractConfig
 }
 
-func NewShortContent(client *xuper.XClient, config *ContractConfig) (Contract, error) {
+func NewShortContent(config *ContractConfig, client *xuper.XClient) (Contract, error) {
 	t := &shortContent{
 		client: client,
 		config: config,
@@ -56,8 +56,8 @@ func (t *shortContent) Invoke(from *account.Account, name, method string, args m
 	args = map[string]string{
 		"user_id": `xuperos`,
 		"topic": from.Address,
-		"title": fmt.Sprintf("title_%d_%s", t.length, generate.RandBytes(16)),
-		"content": string(generate.RandBytes(t.length)),
+		"title": fmt.Sprintf("title_%d_%s", t.length, lib.RandBytes(16)),
+		"content": string(lib.RandBytes(t.length)),
 	}
 	return t.client.InvokeWasmContract(from, name, method, args, opts...)
 }

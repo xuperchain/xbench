@@ -2,6 +2,7 @@ package generate
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/xuperchain/xuperchain/service/pb"
 	"io"
 	"io/ioutil"
@@ -10,14 +11,16 @@ import (
 	"path/filepath"
 )
 
-type file struct {
+type files struct {
 	total       int
 	concurrency int
 	path        string
+
+	queues      []chan *pb.Transaction
 }
 
-func NewFile(config *Config) (Generator, error) {
-	t := &file{
+func NewFiles(config *Config) (Generator, error) {
+	t := &files{
 		total: config.Total,
 		concurrency: config.Concurrency,
 		path: config.Args["path"],
@@ -27,18 +30,14 @@ func NewFile(config *Config) (Generator, error) {
 	return t, nil
 }
 
-func (t *file) Init() error {
-	return nil
-}
-
-func (t *file) Generate() []chan *pb.Transaction {
+func (t *files) Init() error {
 	files, err := ioutil.ReadDir(t.path)
 	if err != nil {
-		log.Fatalf("generate read dir error: %v, path=%s", err, t.path)
+		return fmt.Errorf("generate read dir error: %v", err)
 	}
 
 	if len(files) < t.concurrency {
-		log.Fatalf("file number less than concurrency")
+		return fmt.Errorf("file number less than concurrency")
 	}
 
 	queues := make([]chan *pb.Transaction, t.concurrency)
@@ -50,34 +49,49 @@ func (t *file) Generate() []chan *pb.Transaction {
 		filename := files[i].Name()
 		file, err := os.Open(filepath.Join(t.path, filename))
 		if err != nil {
-			log.Fatalf("generate read file error: %v, filename=%s", err, filename)
+			return fmt.Errorf("generate read file error: %v", err)
 		}
 
 		go func(in io.Reader, queue chan *pb.Transaction) {
-			if err := ReadFile(file, queue); err != nil {
+			if err := ReadFile(file, queue, -1); err != nil {
 				log.Fatalf("read tx error: %v, filename=%s", err, filename)
 			}
 			close(queue)
 		}(file, queues[i])
 	}
 
-	return queues
+	return nil
 }
 
-func WriteFile(queue chan *pb.Transaction, out io.Writer) error {
-	e := json.NewEncoder(out)
+func (t *files) Generate(id int) (*pb.Transaction, error) {
+	if tx, ok := <-t.queues[id]; ok {
+		return tx, nil
+	}
+
+	return nil, fmt.Errorf("read empty tx from file")
+}
+
+func WriteFile(queue chan *pb.Transaction, w io.Writer, total int) error {
+	count := 0
+	e := json.NewEncoder(w)
 	for tx := range queue {
 		err := e.Encode(tx)
 		if err != nil {
 			return err
+		}
+
+		count++
+		if total > 0 && count >= total {
+			return nil
 		}
 	}
 
 	return nil
 }
 
-func ReadFile(in io.Reader, queue chan *pb.Transaction) error {
-	dec := json.NewDecoder(in)
+func ReadFile(r io.Reader, queue chan *pb.Transaction, total int) error {
+	count := 0
+	dec := json.NewDecoder(r)
 	for {
 		var m pb.Transaction
 		if err := dec.Decode(&m); err == io.EOF {
@@ -86,7 +100,16 @@ func ReadFile(in io.Reader, queue chan *pb.Transaction) error {
 			return err
 		}
 		queue <- &m
+
+		count++
+		if total > 0 && count >= total {
+			return nil
+		}
 	}
 
 	return nil
+}
+
+func init() {
+	RegisterGenerator(BenchmarkFile, NewFiles)
 }
