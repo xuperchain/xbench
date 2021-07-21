@@ -49,7 +49,7 @@ bin/xbench --config=conf/transfer.json
         "method_name":"increase"        // 合约方法
     },
 
-    "host": "10.117.130.40:36301"       // 处理请求的机器
+    "host": "127.0.0.1:36301"       // 处理请求的机器
 }
 ```
 

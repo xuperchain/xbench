@@ -12,5 +12,5 @@
         "contract_name":"counter",
         "method_name":"increase"
     },
-    "host": "10.117.130.40:32101"
+    "host": "127.0.0.1:32101"
 }

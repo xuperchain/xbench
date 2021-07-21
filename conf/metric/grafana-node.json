@@ -13827,8 +13827,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "10.117.130.40:9100",
-          "value": "10.117.130.40:9100"
+          "text": "127.0.0.1:9100",
+          "value": "127.0.0.1:9100"
         },
         "datasource": "Prometheus",
         "definition": "label_values(node_uname_info{job=\"$job\"}, instance)",
