@@ -22,6 +22,8 @@ type contract struct {
 	host        string
 	concurrency int
 	split       int
+	amount      string
+	waitDeploy  int
 
 	config      *contracts.ContractConfig
 	contract    contracts.Contract
@@ -31,10 +33,17 @@ type contract struct {
 }
 
 func NewContract(config *Config) (Generator, error) {
+	waitDeploy, _ := strconv.Atoi(config.Args["wait_deploy"])
+	if waitDeploy <= 0 {
+		waitDeploy = WaitDeploy
+	}
+
 	t := &contract{
 		host: config.Host,
 		concurrency: config.Concurrency,
 		split: 10,
+		amount: config.Args["amount"],
+		waitDeploy: waitDeploy,
 
 		config: &contracts.ContractConfig{
 			ContractAccount: config.Args["contract_account"],
@@ -71,7 +80,7 @@ func NewContract(config *Config) (Generator, error) {
 func (t *contract) Init() error {
 	contractAccount := t.config.ContractAccount
 	// 创建合约账户
-	_, err := t.client.CreateContractAccount(lib.BankAK, contractAccount)
+	_, err := t.client.CreateContractAccount(lib.Bank, contractAccount)
 	if err != nil {
 		if !strings.Contains(err.Error(), "already exists") {
 			return fmt.Errorf("create account error: %v, account=%s", err, t.config.ContractAccount)
@@ -80,13 +89,13 @@ func (t *contract) Init() error {
 	}
 
 	// 转账给合约账户
-	_, err = t.client.Transfer(lib.BankAK, contractAccount, "100000000")
+	_, err = t.client.Transfer(lib.Bank, contractAccount, t.amount)
 	if err != nil {
 		return fmt.Errorf("transfer to contract account error: %v, contractAccount=%s", err, contractAccount)
 	}
 
 	// 部署合约
-	bank := lib.BankAK
+	bank := lib.Bank
 	if err := bank.SetContractAccount(contractAccount); err != nil {
 		return err
 	}
@@ -105,10 +114,10 @@ func (t *contract) Init() error {
 	log.Printf("deploy contract done")
 
 	// 等待部署合约完成
-	time.Sleep(WaitDeploy*time.Second)
+	time.Sleep(time.Duration(t.waitDeploy)*time.Second)
 
 	// 转账给调用合约的账户
-	_, err = lib.Transfer(t.client, lib.BankAK, t.accounts, "100000000", t.split)
+	_, err = lib.InitTransfer(t.client, lib.Bank, t.accounts, t.amount, t.split)
 	if err != nil {
 		return fmt.Errorf("contract to test accounts error: %v", err)
 	}

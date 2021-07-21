@@ -1,9 +1,10 @@
 package cli
 
 import (
-	"github.com/spf13/cobra"
 	"log"
 	"os"
+
+	"github.com/spf13/cobra"
 )
 
 // CommandFunc 代表了一个子命令，用于往Cli注册子命令

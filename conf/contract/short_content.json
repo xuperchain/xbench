@@ -1,0 +1,18 @@
+{
+    "total": 500000,
+    "concurrency": 100,
+    "tags": {
+        "benchmark": "contract",
+        "amount": "100000000",
+
+        "contract_account": "XC0123456789123456@xuper",
+        "code_path": "/home/bench/go/src/github.com/xuperchain/contract/short_content.wasm",
+
+        "module_name":"wasm",
+        "contract_name":"short_content",
+        "method_name":"storeShortContent",
+
+        "length":"256"
+    },
+    "host": "10.117.130.40:32101"
+}

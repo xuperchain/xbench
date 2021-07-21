@@ -2,10 +2,11 @@ package contracts
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/xuperchain/xbench/lib"
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
-	"strconv"
 )
 
 type shortContent struct {

@@ -1,0 +1,16 @@
+{
+    "total": 500000,
+    "concurrency": 100,
+    "tags": {
+        "benchmark": "contract",
+        "amount": "100000000",
+
+        "contract_account": "XC0123456789123456@xuper",
+        "code_path": "/home/bench/go/src/github.com/xuperchain/contract/counter.wasm",
+
+        "module_name":"wasm",
+        "contract_name":"counter",
+        "method_name":"increase"
+    },
+    "host": "10.117.130.40:32101"
+}

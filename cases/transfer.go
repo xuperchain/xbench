@@ -15,6 +15,7 @@ type transfer struct {
 	host        string
 	concurrency int
 	split       int
+	amount      string
 
 	client      *xuper.XClient
 	accounts    []*account.Account
@@ -25,6 +26,7 @@ func NewTransfer(config *Config) (Generator, error) {
 		host: config.Host,
 		concurrency: config.Concurrency,
 		split: 10,
+		amount: config.Args["amount"],
 	}
 
 	var err error
@@ -43,7 +45,7 @@ func NewTransfer(config *Config) (Generator, error) {
 }
 
 func (t *transfer) Init() error {
-	_, err := lib.Transfer(t.client, lib.BankAK, t.accounts, "100000000", t.split)
+	_, err := lib.InitTransfer(t.client, lib.Bank, t.accounts, t.amount, t.split)
 	if err != nil {
 		return fmt.Errorf("transfer to test accounts error: %v", err)
 	}
@@ -54,7 +56,7 @@ func (t *transfer) Init() error {
 func (t *transfer) Generate(id int) (*pb.Transaction, error) {
 	from := t.accounts[id]
 	to := t.accounts[rand.Intn(len(t.accounts))]
-	tx, err := t.client.Transfer(from, to.Address, "10", xuper.WithNotPost())
+	tx, err := t.client.Transfer(from, to.Address, "100", xuper.WithNotPost())
 	if err != nil {
 		log.Printf("generate tx error: %v, address=%s", err, from.Address)
 		return nil, err

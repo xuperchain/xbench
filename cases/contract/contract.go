@@ -2,6 +2,7 @@ package contracts
 
 import (
 	"fmt"
+
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
 )

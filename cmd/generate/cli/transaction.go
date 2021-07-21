@@ -36,7 +36,8 @@ type TransactionCommand struct {
 	// 进程编号
 	child       int
 
-	host string
+	host    string
+	amount  string
 }
 
 func NewTransactionCommand(cli *Cli) *cobra.Command {
@@ -51,7 +52,7 @@ func NewTransactionCommand(cli *Cli) *cobra.Command {
 				return t.generate(ctx)
 			}
 
-			if err := lib.SplitTx(t.host, lib.BankAK, t.concurrency*t.process); err != nil {
+			if err := lib.SplitTx(t.host, lib.Bank, t.amount, t.concurrency*t.process); err != nil {
 				return err
 			}
 
@@ -70,6 +71,8 @@ func NewTransactionCommand(cli *Cli) *cobra.Command {
 
 func (t *TransactionCommand) addFlags() {
 	t.cmd.Flags().StringVarP(&t.host, "host", "", "", "get boot tx from host: ip:port")
+	t.cmd.Flags().StringVarP(&t.amount, "amount", "", "100000000", "init amount")
+
 	t.cmd.Flags().IntVarP(&t.total, "total", "t", 1000000, "total tx number")
 	t.cmd.Flags().IntVarP(&t.concurrency, "concurrency", "c", 20, "goroutine concurrency number")
 	t.cmd.Flags().StringVarP(&t.output, "output", "o", "../data/transaction", "generate tx output path")
@@ -105,6 +108,9 @@ func (t *TransactionCommand) generate(ctx context.Context) error {
 		Host: t.host,
 		Total: t.total,
 		Concurrency: t.concurrency,
+		Args: map[string]string{
+			"amount": t.amount,
+		},
 	}
 	generator, err := cases.NewTransaction(config)
 	if err != nil {
@@ -137,7 +143,6 @@ func (t *TransactionCommand) generate(ctx context.Context) error {
 	log.Printf("child=%d, pid=%d", t.child, os.Getpid())
 	return nil
 }
-
 
 func init() {
 	AddCommand(NewTransactionCommand)

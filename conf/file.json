@@ -1,15 +1,9 @@
 {
     "total": 500000,
     "concurrency": 100,
-    "insecure": true,
-    "call": "pb.Xchain.PostTx",
-    "proto": "./pb/xchain.proto",
-    "import-paths": [
-        "./pb/googleapis"
-    ],
     "tags": {
         "benchmark": "file",
-        "path": "/home/bench/go/src/github.com/xuperchain/xbench/output/data/transaction"
+        "path": "./data/transaction"
     },
     "host": "10.117.130.40:32101"
 }

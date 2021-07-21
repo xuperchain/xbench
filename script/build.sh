@@ -18,10 +18,6 @@ function buildBench() {
     cp -r $WorkPath/data $Output
     cp -r $WorkPath/pb $Output
     cp -r $WorkPath/script $Output
-
-    # TODO rm
-    cp -r $WorkPath/contract $Output
-    ln -s /home/bench/go/src/github.com/xuperchain/xuperchain/output $Output/node
 }
 
 buildBench

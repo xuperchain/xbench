@@ -124,6 +124,7 @@ func (t *EvidenceCommand) generate(ctx context.Context) error {
 		encoders[i] = json.NewEncoder(file)
 	}
 
+	// 生成数据1.1倍冗余
 	total := int(float32(t.total/t.concurrency)*1.1)
 	cases.Consumer(total, t.concurrency, generator, func(i int, tx *pb.Transaction) error {
 		if err := encoders[i].Encode(tx); err != nil {

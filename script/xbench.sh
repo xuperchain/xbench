@@ -1,31 +1,67 @@
 #!/bin/bash
 
-# transaction
-bin/xbench --config=conf/transaction.json
-
+###############################################################################
+# 发压参数
+# 恒定rps发压
 # --rps=100 \
+# rps梯度发压
 # --load-schedule=step --load-start=500 --load-step=100 --load-step-duration=20s \
+# 并发梯度发压
 # --concurrency-schedule=step --concurrency-start=100 --concurrency-step=50 --concurrency-end=300 --concurrency-step-duration=30s \
+# 异步发压
 # --async \
 
-# counter合约
-bin/xbench -n 1000000 -c 10 \
---rps=1000 \
---insecure \
---call=pb.Xchain.PostTx \
---proto=./pb/xchain.proto \
---import-paths=./pb/googleapis \
---tags='{"module_name":"wasm","contract_name":"counter","method_name":"increase"}' \
+###############################################################################
+# 转账
+## 配置文件
+bin/xbench --config=conf/transfer.json
+## 命令行参数
+bin/xbench -n 500000 -c 100 \
+--rps=100 \
+--tags='{
+        "benchmark": "transfer",
+        "amount": "100000000"
+    }' \
 10.117.130.40:32101
 
-# short_content合约
-bin/xbench -n 1000000 -c 10 \
---rps=1000 \
---insecure \
---call=pb.Xchain.PostTx \
---proto=./pb/xchain.proto \
---import-paths=./pb/googleapis \
---tags='{"module_name":"wasm","contract_name":"short_content","method_name":"storeShortContent","length":"256"}' \
+###############################################################################
+# 合约
+bin/xbench --config=conf/contract/counter.json
+bin/xbench -n 500000 -c 10 \
+--tags='{
+        "benchmark": "contract",
+        "amount": "100000000",
+
+        "contract_account": "XC1111111111111111@xuper",
+        "code_path": "./contract/counter.wasm",
+
+        "module_name":"wasm",
+        "contract_name":"counter",
+        "method_name":"increase"
+    }' \
 10.117.130.40:32101
 
-xchain-cli wasm query short_content --method queryByTopic -a '{"user_id":"xuperos","topic":"g0c0"}'
+###############################################################################
+# 生成离线交易
+# 转账数据
+bin/generate tx --total 1000000 \
+--host 10.117.130.40:32101 \
+--amount 100000000 \
+--output ./data/transaction \
+--process 10 --concurrency 10
+
+# 存证数据
+# 提交存证数据需要nofee模式下运行
+bin/generate evidence --total 1000000 \
+--output ./data/evidence \
+--length 256 \
+--process 10 --concurrency 10
+
+# 使用离线交易发压
+bin/xbench --config=conf/file.json
+bin/xbench -n 500000 -c 100 \
+--tags='{
+        "benchmark": "file",
+        "path": "./data/transaction"
+    }' \
+10.117.130.40:32101

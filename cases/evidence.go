@@ -2,21 +2,19 @@ package cases
 
 import (
 	"fmt"
-	"github.com/xuperchain/xbench/lib"
-	"github.com/xuperchain/xuperchain/service/pb"
 	"log"
 	"strconv"
 	"time"
 
+	"github.com/xuperchain/xbench/lib"
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
+	"github.com/xuperchain/xuperchain/service/pb"
 )
 
 type evidence struct {
 	host        string
-	total       int
 	concurrency int
 	length      int
-	batch       int
 
 	accounts    []*account.Account
 }
@@ -24,9 +22,7 @@ type evidence struct {
 func NewEvidence(config *Config) (Generator, error) {
 	t := &evidence{
 		host: config.Host,
-		total: config.Total,
 		concurrency: config.Concurrency,
-		batch: 1000,
 	}
 
 	var err error
@@ -40,8 +36,7 @@ func NewEvidence(config *Config) (Generator, error) {
 		return nil, fmt.Errorf("load account error: %v", err)
 	}
 
-	log.Printf("generate: type=evidence, total=%d, concurrency=%d, length=%d",
-		t.total, t.concurrency, t.length)
+	log.Printf("generate: type=evidence, concurrency=%d, length=%d", t.concurrency, t.length)
 	return t, nil
 }
 

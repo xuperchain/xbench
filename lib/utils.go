@@ -1,15 +1,14 @@
 package lib
 
 import (
-	"encoding/json"
+	"math/rand"
+	"strconv"
+	"strings"
+
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuperchain/service/common"
 	"github.com/xuperchain/xuperchain/service/pb"
 	"github.com/xuperchain/xupercore/lib/crypto/client"
-	"io"
-	"math/rand"
-	"strconv"
-	"strings"
 )
 
 const (
@@ -49,54 +48,8 @@ func SignTx(tx *pb.Transaction, from *account.Account) *pb.Transaction {
 	return tx
 }
 
-func FormatTx(tx *pb.Transaction) []byte {
-	t := FromPBTx(tx)
-	data, _ := json.MarshalIndent(t, "", "  ")
-	return data
-}
-
 func WorkID(workID string) int {
 	workIdStr := strings.Split(workID[1:], "c")[0]
 	workId, _ := strconv.Atoi(workIdStr)
 	return workId
-}
-
-// 从chan中获取tx写文件
-func WriteFile(queue chan *pb.Transaction, w io.Writer, total int) error {
-	count := 0
-	e := json.NewEncoder(w)
-	for tx := range queue {
-		err := e.Encode(tx)
-		if err != nil {
-			return err
-		}
-
-		count++
-		if total > 0 && count >= total {
-			return nil
-		}
-	}
-
-	return nil
-}
-
-func ReadFile(r io.Reader, queue chan *pb.Transaction, total int) error {
-	count := 0
-	dec := json.NewDecoder(r)
-	for {
-		var m pb.Transaction
-		if err := dec.Decode(&m); err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-		queue <- &m
-
-		count++
-		if total > 0 && count >= total {
-			return nil
-		}
-	}
-
-	return nil
 }

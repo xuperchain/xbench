@@ -2,19 +2,21 @@ package cases
 
 import (
 	"fmt"
+	"log"
+	"strconv"
+	"time"
+
 	"github.com/xuperchain/xbench/lib"
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
 	"github.com/xuperchain/xuperchain/service/pb"
-	"log"
-	"strconv"
-	"time"
 )
 
 // 离线生成交易: no SelectUTXO
 type transaction struct {
 	host        string
 	concurrency int
+	amount      string
 
 	client      *xuper.XClient
 	accounts    []*account.Account
@@ -25,6 +27,7 @@ func NewTransaction(config *Config) (Generator, error) {
 	t := &transaction{
 		host: config.Host,
 		concurrency: config.Concurrency,
+		amount: config.Args["amount"],
 	}
 
 	var err error
@@ -43,7 +46,7 @@ func NewTransaction(config *Config) (Generator, error) {
 }
 
 func (t *transaction) Init() error {
-	txs, err := lib.Transfer(t.client, lib.BankAK, t.accounts, "100000000", 1)
+	txs, err := lib.InitTransfer(t.client, lib.Bank, t.accounts, t.amount, 1)
 	if err != nil {
 		return fmt.Errorf("transfer to test accounts error: %v", err)
 	}

@@ -11,9 +11,9 @@ import (
 
 const (
 	Benchmark = "benchmark"
-	// 转账：调用sdk生成转账数据: SelectUTXO
+	// 转账：调用sdk生成转账数据
 	CaseTransfer = "transfer"
-	// 转账: not SelectUTXO
+	// 转账: 离线生成数据，没有进行 SelectUTXO
 	CaseTransaction = "transaction"
 	// 存证
 	CaseEvidence = "evidence"
@@ -57,7 +57,6 @@ func GetGenerator(name string, config *Config) (Generator, error) {
 	return nil, fmt.Errorf("generator not exist")
 }
 
-
 type Consume func(i int, tx *pb.Transaction) error
 func Consumer(total, concurrency int, generator Generator, consume Consume) {
 	var inc int64
@@ -79,7 +78,6 @@ func Consumer(total, concurrency int, generator Generator, consume Consume) {
 				}
 
 				count++
-
 				if count % 1000 == 0 {
 					newInc := atomic.AddInt64(&inc, 1000)
 					if newInc % 100000 == 0 {

@@ -1,12 +1,6 @@
 {
     "total": 500000,
     "concurrency": 100,
-    "insecure": true,
-    "call": "pb.Xchain.PostTx",
-    "proto": "./pb/xchain.proto",
-    "import-paths": [
-        "./pb/googleapis"
-    ],
     "tags": {
         "benchmark": "evidence",
         "length": "256"
