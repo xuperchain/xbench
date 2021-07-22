@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/xuperchain/xuperchain/service/pb"
 )
 
@@ -52,7 +53,7 @@ func (t *file) Init() error {
 	return nil
 }
 
-func (t *file) Generate(id int) (*pb.Transaction, error) {
+func (t *file) Generate(id int) (proto.Message, error) {
 	var tx pb.Transaction
 	err := t.decoders[id].Decode(&tx)
 	if err != nil {

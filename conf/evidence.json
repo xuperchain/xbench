@@ -1,9 +1,0 @@
-{
-    "total": 500000,
-    "concurrency": 100,
-    "tags": {
-        "benchmark": "evidence",
-        "length": "256"
-    },
-    "host": "127.0.0.1:32101"
-}

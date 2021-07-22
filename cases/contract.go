@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	contracts "github.com/xuperchain/xbench/cases/contract"
 	"github.com/xuperchain/xbench/lib"
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
-	"github.com/xuperchain/xuperchain/service/pb"
 )
 
 const WaitDeploy = 5 // 等待所有节点完成合约部署 5s
@@ -126,7 +126,7 @@ func (t *contract) Init() error {
 	return nil
 }
 
-func (t *contract) Generate(id int) (*pb.Transaction, error) {
+func (t *contract) Generate(id int) (proto.Message, error) {
 	from := t.accounts[id]
 	args := map[string]string {
 		"id": strconv.Itoa(id),

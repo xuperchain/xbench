@@ -11,12 +11,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/spf13/cobra"
 	"github.com/xuperchain/xbench/cases"
 	"github.com/xuperchain/xbench/lib"
-	"github.com/xuperchain/xuperchain/service/pb"
 )
 
 // BenchCommand
@@ -132,7 +133,7 @@ func (t *TransactionCommand) generate(ctx context.Context) error {
 	}
 
 	total := int(float32(t.total/t.concurrency)*1.1)
-	cases.Consumer(total, t.concurrency, generator, func(i int, tx *pb.Transaction) error {
+	Consumer(total, t.concurrency, generator, func(i int, tx proto.Message) error {
 		if err := encoders[i].Encode(tx); err != nil {
 			log.Fatalf("write tx error: %v", err)
 			return err
@@ -142,6 +143,43 @@ func (t *TransactionCommand) generate(ctx context.Context) error {
 
 	log.Printf("child=%d, pid=%d", t.child, os.Getpid())
 	return nil
+}
+
+type Consume func(i int, tx proto.Message) error
+func Consumer(total, concurrency int, generator cases.Generator, consume Consume) {
+	var inc int64
+	wg := new(sync.WaitGroup)
+	wg.Add(concurrency)
+	for i := 0; i < concurrency; i++ {
+		go func(i int) {
+			defer wg.Done()
+			var count int
+			for {
+				tx, err := generator.Generate(i)
+				if err != nil {
+					log.Fatalf("generate tx error: %v", err)
+					return
+				}
+
+				if err = consume(i, tx); err != nil {
+					return
+				}
+
+				count++
+				if count % 1000 == 0 {
+					newInc := atomic.AddInt64(&inc, 1000)
+					if newInc % 100000 == 0 {
+						log.Printf("total=%d", newInc)
+					}
+				}
+
+				if count >= total {
+					return
+				}
+			}
+		}(i)
+	}
+	wg.Wait()
 }
 
 func init() {

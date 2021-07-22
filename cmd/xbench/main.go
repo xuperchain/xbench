@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/xuperchain/xbench/lib/provider"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -16,6 +15,8 @@ import (
 	"github.com/bojand/ghz/runner"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/xuperchain/xbench/lib/provider"
 )
 
 var (
@@ -276,12 +277,16 @@ func main() {
 		err := runner.LoadConfig(cfgPath, &cfg)
 		kingpin.FatalIfError(err, "")
 
-		var cmdCfg runner.Config
-		err = createConfigFromArgs(&cmdCfg)
-		kingpin.FatalIfError(err, "")
+		defaultConfig(&cfg)
+		args := os.Args[1:]
+		if len(args) > 1 {
+			var cmdCfg runner.Config
+			err = createConfigFromArgs(&cmdCfg)
+			kingpin.FatalIfError(err, "")
 
-		err = mergeConfig(&cfg, &cmdCfg)
-		kingpin.FatalIfError(err, "")
+			err = mergeConfig(&cfg, &cmdCfg)
+			kingpin.FatalIfError(err, "")
+		}
 	} else {
 		err := createConfigFromArgs(&cfg)
 
@@ -371,6 +376,24 @@ func handleError(err error) {
 			fmt.Fprintln(os.Stderr, errString)
 		}
 		os.Exit(1)
+	}
+}
+
+func defaultConfig(cfg *runner.Config) {
+	if cfg.Proto == "" {
+		cfg.Proto = "./pb/xchain.proto"
+	}
+
+	if cfg.Call == "" {
+		cfg.Call = "pb.Xchain.PostTx"
+	}
+
+	if len(cfg.ImportPaths) <= 0 {
+		cfg.ImportPaths = append(cfg.ImportPaths, "./pb/googleapis")
+	}
+
+	if !cfg.Insecure {
+		cfg.Insecure = true
 	}
 }
 
@@ -493,13 +516,16 @@ func mergeConfig(dest *runner.Config, src *runner.Config) error {
 
 	// proto
 
-	dest.Proto = src.Proto
-	dest.Call = src.Call
-	dest.ImportPaths = src.ImportPaths
-	dest.Insecure = src.Insecure
+	if isProtoSet {
+		dest.Proto = src.Proto
+	}
 
 	if isProtoSetSet {
 		dest.Protoset = src.Protoset
+	}
+
+	if isCallSet {
+		dest.Call = src.Call
 	}
 
 	// security
@@ -518,6 +544,10 @@ func mergeConfig(dest *runner.Config, src *runner.Config) error {
 
 	if isSkipSet {
 		dest.SkipTLSVerify = src.SkipTLSVerify
+	}
+
+	if isInsecSet {
+		dest.Insecure = src.Insecure
 	}
 
 	if isAuthSet {
@@ -608,6 +638,10 @@ func mergeConfig(dest *runner.Config, src *runner.Config) error {
 
 	if isFormatSet {
 		dest.Format = src.Format
+	}
+
+	if isImportSet {
+		dest.ImportPaths = src.ImportPaths
 	}
 
 	if isConnSet {

@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/spf13/cobra"
 	"github.com/xuperchain/xbench/cases"
-	"github.com/xuperchain/xuperchain/service/pb"
 )
 
 // BenchCommand
@@ -126,7 +126,7 @@ func (t *EvidenceCommand) generate(ctx context.Context) error {
 
 	// 生成数据1.1倍冗余
 	total := int(float32(t.total/t.concurrency)*1.1)
-	cases.Consumer(total, t.concurrency, generator, func(i int, tx *pb.Transaction) error {
+	Consumer(total, t.concurrency, generator, func(i int, tx proto.Message) error {
 		if err := encoders[i].Encode(tx); err != nil {
 			log.Fatalf("write tx error: %v", err)
 			return err

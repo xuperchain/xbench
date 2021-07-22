@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/xuperchain/xbench/lib"
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuperchain/service/pb"
@@ -44,7 +45,7 @@ func (t *evidence) Init() error {
 	return nil
 }
 
-func (t *evidence) Generate(id int) (*pb.Transaction, error) {
+func (t *evidence) Generate(id int) (proto.Message, error) {
 	ak := t.accounts[id]
 	tx := EvidenceTx(ak, t.length)
 	return tx, nil

@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+
 	"github.com/bojand/ghz/runner"
 	"github.com/jhump/protoreflect/dynamic"
 )

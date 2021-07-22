@@ -1,0 +1,11 @@
+# 压测配置
+total: 500000                 # 请求总量
+concurrency: 100              # 并发量
+
+# 压测case参数
+tags:
+  benchmark: "file"           # 压测类型
+  path: "./data/transaction"  # 压测账户初始token数
+
+# 压测节点
+host: "127.0.0.1:32101"

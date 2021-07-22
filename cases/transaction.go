@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/xuperchain/xbench/lib"
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
@@ -55,7 +56,7 @@ func (t *transaction) Init() error {
 	return nil
 }
 
-func (t *transaction) Generate(id int) (*pb.Transaction, error){
+func (t *transaction) Generate(id int) (proto.Message, error){
 	tx := t.bootTxs[id]
 	ak := t.accounts[id]
 	child := Fork(tx, ak)

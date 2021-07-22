@@ -2,12 +2,13 @@ package cases
 
 import (
 	"fmt"
+	"log"
+	"math/rand"
+
+	"github.com/golang/protobuf/proto"
 	"github.com/xuperchain/xbench/lib"
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
-	"github.com/xuperchain/xuperchain/service/pb"
-	"log"
-	"math/rand"
 )
 
 // 调用sdk生成tx
@@ -53,7 +54,7 @@ func (t *transfer) Init() error {
 	return nil
 }
 
-func (t *transfer) Generate(id int) (*pb.Transaction, error) {
+func (t *transfer) Generate(id int) (proto.Message, error) {
 	from := t.accounts[id]
 	to := t.accounts[rand.Intn(len(t.accounts))]
 	tx, err := t.client.Transfer(from, to.Address, "100", xuper.WithNotPost())

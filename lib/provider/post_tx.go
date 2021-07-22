@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+
 	"github.com/bojand/ghz/runner"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/xuperchain/xbench/cases"
@@ -48,9 +49,14 @@ func NewPostTx(config *runner.Config) (Provider, error) {
 
 func (t *postTx) DataProvider(run *runner.CallData) ([]*dynamic.Message, error) {
 	workID := lib.WorkID(run.WorkerID)
-	tx, err :=  t.generator.Generate(workID)
+	v, err :=  t.generator.Generate(workID)
 	if err != nil {
 		return nil, err
+	}
+
+	tx, ok := v.(*pb.Transaction)
+	if !ok {
+		return nil, fmt.Errorf("msg type not match: %T", v)
 	}
 
 	msg := &pb.TxStatus{
