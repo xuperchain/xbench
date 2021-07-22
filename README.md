@@ -160,3 +160,7 @@ type Contract interface {
 
 * 原因：文件中的数据总量 <= 压测配置中的数据总量，每个并发总独立发送，有的先发送完。
 * 解决：文件中的数据总量 > 1.1 * 压测配置中的数据总量
+
+## 文档
+
+[ghz Guide](https://ghz.sh/docs/intro)
