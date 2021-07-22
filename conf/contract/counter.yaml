@@ -1,0 +1,18 @@
+# 压测配置
+total: 500000               # 请求总量
+concurrency: 100            # 并发量
+
+# 压测case参数
+tags:
+  benchmark: "contract"     # 压测类型
+  amount: "100000000"       # 压测账户初始token数
+
+  contract_account: "XC1234567890123456@xuper"  # 合约账户
+  code_path: "./data/contract/counter.wasm"     # 合约二进制文件的路径
+
+  module_name: "wasm"       # 合约类型
+  contract_name: "counter"  # 合约名
+  method_name: "increase"   # 合约方法
+
+# 压测节点
+host: "127.0.0.1:32101"

@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 1,
+  "id": 3,
   "links": [],
   "panels": [
     {
@@ -65,7 +65,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(grpc_server_started_total{job=\"xchain\",grpc_method=~\"PostTx|PreExecWithSelectUTXO\"}[10s])) by (instance, grpc_method)",
+          "expr": "sum(rate(grpc_server_started_total{job=\"xchain\",grpc_method=~\"PostTx|PreExecWithSelectUTXO|BatchPostTx\"}[10s])) by (instance, grpc_method)",
           "hide": false,
           "interval": "",
           "legendFormat": "",
@@ -163,7 +163,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "histogram_quantile(0.95,sum(rate(grpc_server_handling_seconds_bucket{job=\"xchain\",grpc_method=~\"PostTx|PreExecWithSelectUTXO\"}[10s])) by (instance,grpc_method,le))",
+          "expr": "histogram_quantile(0.80,sum(rate(grpc_server_handling_seconds_bucket{job=\"xchain\",grpc_method=~\"PostTx|PreExecWithSelectUTXO|BatchPostTx\"}[10s])) by (instance,grpc_method,le))",
           "hide": false,
           "interval": "",
           "legendFormat": "",
@@ -233,7 +233,7 @@
         "y": 8
       },
       "hiddenSeries": false,
-      "id": 6,
+      "id": 38,
       "legend": {
         "avg": false,
         "current": false,
@@ -261,7 +261,8 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(xuperos_contract_invoke_total{job=\"xchain\",contract_method=~\"increase|storeShortContent\"}[10s])) by (instance,contract_method)",
+          "expr": "sum(rate(xuperos_common_call_method_total{job=\"xchain\",method=\"SubmitTx\",code!=\"OK\"}[10s])) by (instance,method)\n / \nsum(rate(xuperos_common_call_method_total{job=\"xchain\",method=\"SubmitTx\"}[10s])) by (instance,method)\n * 100.0",
+          "hide": false,
           "interval": "",
           "legendFormat": "",
           "queryType": "randomWalk",
@@ -272,7 +273,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "合约TPS",
+      "title": "处理广播消息错误率",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -288,8 +289,8 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:31",
-          "format": "reqps",
+          "$$hashKey": "object:3385",
+          "format": "percent",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -297,7 +298,7 @@
           "show": true
         },
         {
-          "$$hashKey": "object:32",
+          "$$hashKey": "object:3386",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -328,201 +329,6 @@
         "w": 12,
         "x": 12,
         "y": 8
-      },
-      "hiddenSeries": false,
-      "id": 8,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.5.7",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "histogram_quantile(0.95,sum(rate(xuperos_contract_invoke_seconds_bucket{job=\"xchain\",contract_method=~\"increase|storeShortContent\"}[10s])) by (instance,contract_method,le))",
-          "interval": "",
-          "legendFormat": "",
-          "queryType": "randomWalk",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "合约耗时",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:68",
-          "format": "s",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:69",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": true,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 16
-      },
-      "hiddenSeries": false,
-      "id": 42,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": false,
-      "linewidth": 0,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.5.7",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "xuperos_ledger_height_total",
-          "interval": "",
-          "legendFormat": "",
-          "queryType": "randomWalk",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "高度",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:4384",
-          "decimals": null,
-          "format": "none",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:4385",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 16
       },
       "hiddenSeries": false,
       "id": 44,
@@ -605,6 +411,411 @@
     },
     {
       "aliasColors": {},
+      "bars": true,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "hiddenSeries": false,
+      "id": 62,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": false,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.5.7",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "xuperos_ledger_height_total",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "高度",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:158",
+          "format": "string",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:159",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": true,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "hiddenSeries": false,
+      "id": 42,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": false,
+      "linewidth": 0,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.5.7",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "xuperos_ledger_height_total",
+          "hide": true,
+          "interval": "",
+          "legendFormat": "",
+          "queryType": "randomWalk",
+          "refId": "A"
+        },
+        {
+          "exemplar": true,
+          "expr": "rate(xuperos_ledger_height_total[30s])",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "出块率",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:4384",
+          "decimals": null,
+          "format": "none",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:4385",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "hiddenSeries": false,
+      "id": 60,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.5.7",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "histogram_quantile(0.3, sum(rate(xuperos_common_call_method_seconds_bucket{module=\"miner\"}[30s])) by (instance,method,le))",
+          "hide": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        },
+        {
+          "exemplar": true,
+          "expr": "rate(xuperos_common_call_method_seconds_sum{module=\"miner\"}[10s]) / rate(xuperos_common_call_method_seconds_count{module=\"miner\"}[10s])",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "出块耗时",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:3065",
+          "format": "s",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:3066",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "hiddenSeries": false,
+      "id": 63,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.5.7",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "rate(xuperos_common_call_method_seconds_sum{module=\"sync\"}[10s]) / rate(xuperos_common_call_method_seconds_count{module=\"sync\"}[10s])",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "块追耗时",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:3065",
+          "format": "s",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:3066",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
@@ -619,7 +830,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 24
+        "y": 32
       },
       "hiddenSeries": false,
       "id": 10,
@@ -720,7 +931,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 24
+        "y": 32
       },
       "hiddenSeries": false,
       "id": 12,
@@ -806,199 +1017,6 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 32
-      },
-      "hiddenSeries": false,
-      "id": 60,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.5.7",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "histogram_quantile(0.95, sum(rate(xuperos_common_call_method_seconds_bucket{instance=\"10.117.130.40:8091\",module=\"miner\"}[10s])) by (instance,method,le))",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "出块耗时",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:3065",
-          "format": "s",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:3066",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 32
-      },
-      "hiddenSeries": false,
-      "id": 36,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.5.7",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "histogram_quantile(0.95, sum(rate(xuperos_common_call_method_seconds_bucket{method=~\"SENDBLOCK|POSTTX\"}[1h])) by (instance,method,le))",
-          "interval": "",
-          "legendFormat": "",
-          "queryType": "randomWalk",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "广播消息处理耗时",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:2783",
-          "format": "s",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:2784",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {},
@@ -1041,7 +1059,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(xuperos_network_msg_send_total{job=\"xchain\",message=~\"POSTTX|SENDBLOCK\"}[10s])) by (instance,message)",
+          "expr": "sum(rate(xuperos_network_msg_send_total{job=\"xchain\"}[10s])) by (instance,message)",
           "interval": "",
           "legendFormat": "",
           "queryType": "randomWalk",
@@ -1138,7 +1156,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(xuperos_network_msg_received_total{job=\"xchain\",message=~\"POSTTX|SENDBLOCK\"}[10s])) by (instance,message)",
+          "expr": "sum(rate(xuperos_network_msg_received_total{job=\"xchain\"}[10s])) by (instance,message)",
           "interval": "",
           "legendFormat": "",
           "queryType": "randomWalk",
@@ -1235,7 +1253,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(xuperos_network_msg_send_bytes{job=\"xchain\",message=~\"POSTTX|SENDBLOCK\"}[10s])) by (message)",
+          "expr": "sum(rate(xuperos_network_msg_send_bytes{job=\"xchain\"}[30s])) by (instance,message)",
           "interval": "",
           "legendFormat": "",
           "queryType": "randomWalk",
@@ -1332,7 +1350,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(xuperos_network_msg_received_bytes{job=\"xchain\",message=~\"POSTTX|SENDBLOCK\"}[10s])) by (message)",
+          "expr": "sum(rate(xuperos_network_msg_received_bytes{job=\"xchain\"}[10s])) by (instance,message)",
           "interval": "",
           "legendFormat": "",
           "queryType": "randomWalk",
@@ -1623,7 +1641,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(process_cpu_seconds_total[10s])",
+          "expr": "rate(process_cpu_seconds_total{job=\"xchain\"}[30s])",
           "interval": "",
           "legendFormat": "",
           "queryType": "randomWalk",
@@ -1720,7 +1738,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "process_resident_memory_bytes",
+          "expr": "process_resident_memory_bytes{job=\"xchain\"}",
           "interval": "",
           "legendFormat": "",
           "queryType": "randomWalk",
@@ -1817,7 +1835,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "go_goroutines",
+          "expr": "go_goroutines{job=\"xchain\"}",
           "interval": "",
           "legendFormat": "",
           "queryType": "randomWalk",
@@ -1914,7 +1932,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "process_open_fds",
+          "expr": "process_open_fds{job=\"xchain\"}",
           "interval": "",
           "legendFormat": "",
           "queryType": "randomWalk",
@@ -2107,7 +2125,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(xuperos_common_handle_bytes[10s])) by (method, handle)",
+          "expr": "sum(rate(xuperos_common_handle_bytes[10s])) by (method, handle, instance)",
           "hide": false,
           "interval": "",
           "legendFormat": "",
@@ -2115,7 +2133,9 @@
         }
       ],
       "thresholds": [],
+      "timeFrom": null,
       "timeRegions": [],
+      "timeShift": null,
       "title": "levelDB bytes",
       "tooltip": {
         "shared": true,
@@ -2257,7 +2277,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {},
         "overrides": []
@@ -2271,7 +2291,7 @@
         "y": 88
       },
       "hiddenSeries": false,
-      "id": 50,
+      "id": 36,
       "legend": {
         "avg": false,
         "current": false,
@@ -2299,26 +2319,18 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "histogram_quantile(0.95, sum(rate(xuperos_common_call_method_seconds_bucket{instance=\"10.117.130.40:8091\",method=~\"doTxLock|doTxInternal|batchWrite|cacheFiller|xmodelDoTx|ImmediateVerifyTx\"}[10s])) by (instance,method,le))",
-          "hide": false,
+          "expr": "histogram_quantile(0.95, sum(rate(xuperos_common_call_method_seconds_bucket{method=~\"SENDBLOCK|POSTTX\"}[1h])) by (instance,method,le))",
           "interval": "",
           "legendFormat": "",
+          "queryType": "randomWalk",
           "refId": "A"
-        },
-        {
-          "exemplar": true,
-          "expr": "histogram_quantile(0.95,sum(rate(grpc_server_handling_seconds_bucket{grpc_method=\"PostTx\"}[10s])) by (instance,grpc_method,le))",
-          "hide": false,
-          "interval": "",
-          "legendFormat": "",
-          "refId": "B"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "PostTx耗时细分项",
+      "title": "广播消息处理耗时",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -2334,7 +2346,7 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:1013",
+          "$$hashKey": "object:2783",
           "format": "s",
           "label": null,
           "logBase": 1,
@@ -2343,7 +2355,7 @@
           "show": true
         },
         {
-          "$$hashKey": "object:1014",
+          "$$hashKey": "object:2784",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -2458,7 +2470,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "Prometheus",
+      "datasource": null,
       "fieldConfig": {
         "defaults": {},
         "overrides": []
@@ -2472,7 +2484,7 @@
         "y": 96
       },
       "hiddenSeries": false,
-      "id": 38,
+      "id": 50,
       "legend": {
         "avg": false,
         "current": false,
@@ -2500,19 +2512,34 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(xuperos_common_call_method_total{job=\"xchain\",method=\"SubmitTx\",code!=\"OK\"}[10s])) by (instance,method)\n / \nsum(rate(xuperos_common_call_method_total{job=\"xchain\",method=\"SubmitTx\"}[10s])) by (instance,method)\n * 100.0",
+          "expr": "histogram_quantile(0.95, sum(rate(xuperos_common_call_method_seconds_bucket{method=~\"doTxLock|doTxInternal|batchWrite|cacheFiller|xmodelDoTx|ImmediateVerifyTx\"}[10s])) by (instance,method,le))",
           "hide": false,
           "interval": "",
           "legendFormat": "",
-          "queryType": "randomWalk",
           "refId": "A"
+        },
+        {
+          "exemplar": true,
+          "expr": "histogram_quantile(0.95,sum(rate(grpc_server_handling_seconds_bucket{grpc_method=\"PostTx\"}[10s])) by (instance,grpc_method,le))",
+          "hide": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "B"
+        },
+        {
+          "exemplar": true,
+          "expr": "histogram_quantile(0.85, sum(rate(xuperos_common_call_method_seconds_bucket{module=\"posttx\"}[10s])) by (instance,method,le))",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "C"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "处理广播消息错误率",
+      "title": "PostTx耗时细分项",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -2528,8 +2555,8 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:3385",
-          "format": "percent",
+          "$$hashKey": "object:1013",
+          "format": "s",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -2537,7 +2564,7 @@
           "show": true
         },
         {
-          "$$hashKey": "object:3386",
+          "$$hashKey": "object:1014",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -2567,5 +2594,5 @@
   "timezone": "",
   "title": "xchain",
   "uid": "oQLFbpjGz",
-  "version": 11
+  "version": 10
 }

@@ -16,7 +16,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/ownluke/bench/cases"
+	"github.com/xuperchain/xbench/lib/provider"
 )
 
 var (
@@ -30,7 +30,7 @@ var (
 	// Proto
 	isProtoSet = false
 	proto      = kingpin.Flag("proto", `The Protocol Buffer .proto file.`).
-		PlaceHolder(" ").IsSetByUser(&isProtoSet).String()
+		Default("./pb/xchain.proto").PlaceHolder(" ").IsSetByUser(&isProtoSet).String()
 
 	isProtoSetSet = false
 	protoset      = kingpin.Flag("protoset", "The compiled protoset file. Alternative to proto. -proto takes precedence.").
@@ -38,11 +38,11 @@ var (
 
 	isCallSet = false
 	call      = kingpin.Flag("call", `A fully-qualified method name in 'package.Service/method' or 'package.Service.Method' format.`).
-		PlaceHolder(" ").IsSetByUser(&isCallSet).String()
+		Default("pb.Xchain.PostTx").PlaceHolder(" ").IsSetByUser(&isCallSet).String()
 
 	isImportSet = false
 	paths       = kingpin.Flag("import-paths", "Comma separated list of proto import paths. The current working directory and the directory of the protocol buffer file are automatically added to the import list.").
-		Short('i').PlaceHolder(" ").IsSetByUser(&isImportSet).String()
+		Default("./pb/googleapis").Short('i').PlaceHolder(" ").IsSetByUser(&isImportSet).String()
 
 	// Security
 	isCACertSet = false
@@ -67,7 +67,7 @@ var (
 
 	isInsecSet = false
 	insecure   = kingpin.Flag("insecure", "Use plaintext and insecure connection.").
-		Default("false").IsSetByUser(&isInsecSet).Bool()
+		Default("true").IsSetByUser(&isInsecSet).Bool()
 
 	isAuthSet = false
 	authority = kingpin.Flag("authority", "Value to be used as the :authority pseudo-header. Only works if -insecure is used.").
@@ -277,6 +277,7 @@ func main() {
 		err := runner.LoadConfig(cfgPath, &cfg)
 		kingpin.FatalIfError(err, "")
 
+		defaultConfig(&cfg)
 		args := os.Args[1:]
 		if len(args) > 1 {
 			var cmdCfg runner.Config
@@ -294,7 +295,7 @@ func main() {
 
 	var logger *zap.SugaredLogger
 
-	dataProvider, err := cases.MakeDataProvider(cfg)
+	dataProvider, err := provider.NewDataProviderFunc(&cfg)
 	if err != nil {
 		handleError(err)
 	}
@@ -375,6 +376,24 @@ func handleError(err error) {
 			fmt.Fprintln(os.Stderr, errString)
 		}
 		os.Exit(1)
+	}
+}
+
+func defaultConfig(cfg *runner.Config) {
+	if cfg.Proto == "" {
+		cfg.Proto = "./pb/xchain.proto"
+	}
+
+	if cfg.Call == "" {
+		cfg.Call = "pb.Xchain.PostTx"
+	}
+
+	if len(cfg.ImportPaths) <= 0 {
+		cfg.ImportPaths = append(cfg.ImportPaths, "./pb/googleapis")
+	}
+
+	if !cfg.Insecure {
+		cfg.Insecure = true
 	}
 }
 
