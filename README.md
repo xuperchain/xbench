@@ -56,7 +56,9 @@ XuperChain（打点）=> prometheus（采样、存储）=> grafana（可视化�
     * 状态机：未确认交易量；
     * 网络：网络消息吞吐、耗时、字节量；
 
-部署xchain参考https://github.com/xuperchain/xuperchain ，启动xchain时，配置开启监控 conf/env.yaml文件中metricSwitch:true
+部署xchain参考https://github.com/xuperchain/xuperchain ，启动xchain时，配置开启监控：
+
+* 设置conf/env.yaml文件中metricSwitch:true
 
 部署prometheus和grafana服务，官网下载安装包，启动服务时使用下面的配置文件：
 
