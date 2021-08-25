@@ -1,19 +1,18 @@
-module github.com/xuperchain/xuperbench
+module github.com/xuperchain/xbench
+
+go 1.16
 
 require (
-	github.com/geoffreybauduin/termtables v0.0.0-20190814081757-aef65af557dc
-	github.com/golang/protobuf v1.3.2
-	github.com/gomodule/redigo v2.0.0+incompatible
-	github.com/struCoder/pidusage v0.1.2
-	github.com/xuperchain/xuper-sdk-go v0.0.0-20191114073944-eb3c9f0a67b4
-	github.com/xuperchain/xuperunion v0.0.0-20191120083657-e6ec20b91828
-	google.golang.org/grpc v1.24.0
-	github.com/hyperledger/burrow v0.30.5
-)
-
-replace (
-	golang.org/x/net => github.com/golang/net v0.0.0-20191119073136-fc4aabc6c914
-	google.golang.org/genproto => github.com/google/go-genproto v0.0.0-20191115221424-83cc0476cb11
-	google.golang.org/grpc => github.com/grpc/grpc-go v1.24.0
-	github.com/hyperledger/burrow => github.com/xuperchain/burrow v0.30.6-0.20200922024403-90193b5a35dd
+	github.com/alecthomas/kingpin v1.3.8-0.20191105203113-8c96d1c22481
+	github.com/bojand/ghz v0.94.0
+	github.com/golang/protobuf v1.4.4-0.20210303013846-acacf8158c9a
+	github.com/grpc-ecosystem/grpc-gateway v1.16.0
+	github.com/jhump/protoreflect v1.9.0
+	github.com/spf13/cobra v1.0.0
+	github.com/xuperchain/xuper-sdk-go/v2 v2.0.0-20210720072245-eaed3072ed04
+	github.com/xuperchain/xuperchain v0.0.0-20210720132849-0079bcda5e54
+	github.com/xuperchain/xupercore v0.0.0-20210720112551-29ed46a49f02
+	go.uber.org/zap v1.15.0
+	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
+	google.golang.org/grpc v1.35.0
 )
