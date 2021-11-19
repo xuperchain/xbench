@@ -16,6 +16,7 @@ xbench是xuperchain的压测工具，功能：
 1.执行构建
 
 ```
+go mod tidy
 make
 ```
 
