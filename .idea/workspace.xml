@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="ALL" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="9ae308ee-bb6f-434a-9cf8-ceef2158a8d7" name="变更" comment="">
+      <change beforePath="$PROJECT_DIR$/conf/bench.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/conf/bench.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/conf/contract/counter.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/conf/contract/counter.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/conf/contract/short_content.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/conf/contract/short_content.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/conf/evidence.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/conf/evidence.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/conf/file.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/conf/file.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/conf/transaction.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/conf/transaction.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/conf/transfer.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/conf/transfer.yaml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="GOROOT" url="file://$USER_HOME$/GOROOT/go1.17.3" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GoLibraries">
+    <option name="indexEntireGoPath" value="false" />
+  </component>
+  <component name="ProjectId" id="22X4w2Y7jrP913bViUpgvN0Zpkp" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="configurable.GoLibrariesConfigurable.is.expanded" value="true" />
+    <property name="go.formatter.settings.were.checked" value="true" />
+    <property name="go.import.settings.migrated" value="true" />
+    <property name="go.modules.go.list.on.any.changes.was.set" value="true" />
+    <property name="last_opened_file_path" value="$USER_HOME$" />
+    <property name="settings.editor.selected.configurable" value="go.sdk" />
+  </component>
+  <component name="RunManager">
+    <configuration default="true" type="GoApplicationRunConfiguration" factoryName="Go Application">
+      <module name="xbench" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="FILE" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="GoTestRunConfiguration" factoryName="Go Test">
+      <module name="xbench" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="DIRECTORY" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="应用程序级" UseSingleDictionary="true" transferred="true" />
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VgoProject">
+    <integration-enabled>true</integration-enabled>
+  </component>
+</project>
