@@ -35,7 +35,16 @@ bin/xbench --config=conf/transfer.yaml
 > 注意：修改配置文件中压测节点的ip:port
 > 更多案例参考：script/xbench.sh
 
-4.压测结果
+4 执行存证压测
+```bash
+bin/cbench --config=conf/evidence.yaml
+```
+
+> 注意：修改xchain配置为**nofee**模式,
+> 设置data/genesis/xuper.json中nofee
+> 字段为true
+
+5.压测结果
 
 xbench 执行完后会打印基础指标：响应耗时分位值、tps均值和成功率，更详细的指标通过grafana展示。
 
