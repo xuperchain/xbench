@@ -1,13 +1,14 @@
 # 压测配置
-total: 500000                 # 请求总量
-concurrency: 20               # 并发量
+total: 5000000               # 请求总量
+concurrency: 20              # 并发量
+output: "./data/counter"    # 产出路径
 
 # 压测case参数
 tags:
-  request_method: "contracts" # 合约请求方法，通用contracts或自定义counter、short_content等
+  request_method: "contracts"    # 通用合约
 
-  benchmark: "contract"       # 压测类型
-  amount: "100000000"         # 压测账户初始token数
+  benchmark: "contract"          # 压测类型
+  amount: "100000000"            # 压测账户初始token数
 
   contract_account: "XC1111111111111111@xuper"    # 合约账户
   code_path: "./data/contract/counter.wasm"       # 合约二进制文件的路径
@@ -16,14 +17,14 @@ tags:
   contract_name: "counter"  # 合约名
   method_name: "increase"   # 合约方法
 
-  # Deploy参数, 多个参数逗号隔开
+  # Deploy参数, 多个逗号隔开
   deploy_consts: "creator"
   creator: "dw3RjnTe47G4u6a6hHWCfEhtaDkgdYWTE"
 
   # Invoke参数
-  # 变量字段，多个参数逗号隔开
+  # 变量字段，多个逗号隔开
   invoke_vars: "key"
-  # 常量字段，多个参数逗号隔开
+  # 常量字段，多个逗号隔开
   invoke_consts: ""
 
 # 压测节点

@@ -29,7 +29,7 @@ make
 3.执行转账压测
 
 ```bash
-bin/xbench --config=conf/transfer.yaml
+bin/generate contract --config=conf/generate/counter.yaml
 ```
 
 > 注意：修改配置文件中压测节点的ip:port
@@ -37,14 +37,24 @@ bin/xbench --config=conf/transfer.yaml
 
 4 执行存证压测
 ```bash
-bin/cbench --config=conf/evidence.yaml
+bin/xbench --config=conf/evidence.yaml
 ```
 
 > 注意：修改xchain配置为**nofee**模式,
 > 设置data/genesis/xuper.json中nofee
 > 字段为true
 
-5.压测结果
+5 生成合约离线交易
+counter合约离线交易，通过修改yaml文件的参数配置实现通用的离线合约生成。
+```bash
+bin/generate contract --config=conf/generate/counter.yaml
+```
+
+> 注意：修改xchain配置为**nofee**模式,
+> 设置data/genesis/xuper.json中nofee
+> 字段为true
+
+6.压测结果
 
 xbench 执行完后会打印基础指标：响应耗时分位值、tps均值和成功率，更详细的指标通过grafana展示。
 

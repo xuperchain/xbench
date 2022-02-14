@@ -1,6 +1,7 @@
 # 压测配置
-total: 500000               # 请求总量
-concurrency: 100            # 并发量
+total: 5000000                # 请求总量
+concurrency: 20               # 并发量
+output: "./data/transaction"  # 产出路径
 
 # 压测case参数
 tags:
