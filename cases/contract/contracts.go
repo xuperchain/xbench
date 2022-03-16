@@ -56,7 +56,6 @@ func (t *contract) Invoke(from *account.Account, name, method string, args map[s
 		}
 	}
 
-
 	// 常量数据组装
 	if len(t.config.Args["invoke_consts"]) != 0 {
 		arrayArgs := strings.Split(t.config.Args["invoke_consts"], ",")
