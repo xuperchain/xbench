@@ -30,7 +30,7 @@ type ContractConfig struct {
 	Args            map[string]string
 }
 
-type NewContract func (config *ContractConfig, client *xuper.XClient) (Contract, error)
+type NewContract func(config *ContractConfig, client *xuper.XClient) (Contract, error)
 
 // 注册合约
 var contracts = make(map[string]NewContract, 8)
@@ -40,10 +40,10 @@ func RegisterContract(name string, contract NewContract) {
 }
 
 func GetContract(config *ContractConfig, client *xuper.XClient) (Contract, error) {
-	if newContract, ok := contracts[config.ContractName]; ok {
+
+	if newContract, ok := contracts[config.Args["request_method"]]; ok {
 		return newContract(config, client)
 	}
 
 	return nil, fmt.Errorf("contract not exist")
 }
-
