@@ -13,55 +13,45 @@
 
 ###############################################################################
 # 转账
-## 配置文件
-bin/xbench --config=conf/transfer.json
-## 命令行参数
-bin/xbench -n 500000 -c 100 \
---rps=100 \
---tags='{
-        "benchmark": "transfer",
-        "amount": "100000000"
-    }' \
-127.0.0.1:32101
+# 配置文件
+bin/xbench --config=conf/transfer.yaml
 
 ###############################################################################
 # 合约
-bin/xbench --config=conf/contract/counter.json
-bin/xbench -n 500000 -c 10 \
---tags='{
-        "benchmark": "contract",
-        "amount": "100000000",
-
-        "contract_account": "XC1111111111111111@xuper",
-        "code_path": "./contract/counter.wasm",
-
-        "module_name":"wasm",
-        "contract_name":"counter",
-        "method_name":"increase"
-    }' \
-127.0.0.1:32101
+# counter合约
+bin/xbench --config=conf/contract/counter.yaml
+# short_content合约
+bin/xbench --config=conf/contract/short_content.yaml
 
 ###############################################################################
 # 生成离线交易
 # 转账数据
 bin/generate tx --total 1000000 \
---host 127.0.0.1:32101 \
+--host 127.0.0.1:37101 \
 --amount 100000000 \
 --output ./data/transaction \
---process 10 --concurrency 10
+--concurrency 20
 
 # 存证数据
 # 提交存证数据需要nofee模式下运行
 bin/generate evidence --total 1000000 \
 --output ./data/evidence \
 --length 256 \
---process 10 --concurrency 10
+concurrency 20
+
+# 合约数据, nofee模式下运行
+# counter合约离线交易
+bin/generate contract --config=conf/generate/counter.yaml
+
+# 合约数据, nofee模式下运行
+# short_content合约离线交易
+bin/generate contract --config=conf/generate/counter.yaml
 
 # 使用离线交易发压
-bin/xbench --config=conf/file.json
+bin/xbench --config=conf/file.yaml
 bin/xbench -n 500000 -c 100 \
 --tags='{
         "benchmark": "file",
         "path": "./data/transaction"
     }' \
-127.0.0.1:32101
+127.0.0.1:37101

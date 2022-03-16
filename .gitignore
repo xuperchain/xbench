@@ -10,3 +10,16 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# Project specific files
+output/*
+
+# OSX trash
+.DS_Store
+
+# idea
+.idea
+
+# Log files
+*.log
+*.log.wf
