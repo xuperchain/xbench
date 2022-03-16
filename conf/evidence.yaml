@@ -1,6 +1,7 @@
 # 压测配置
 total: 500000             # 请求总量
 concurrency: 100          # 并发量
+output: "./data/evidence" # 产出路径
 
 # 压测case参数
 tags:

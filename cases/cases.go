@@ -29,12 +29,11 @@ type Generator interface {
 
 // 配置文件
 type Config struct {
-	Host    string
-	Total   int
+	Host        string
+	Total       int
 	Concurrency int
-
 	// 自定义参数
-	Args    map[string]string
+	Args map[string]string
 }
 
 type NewGenerator func(config *Config) (Generator, error)
