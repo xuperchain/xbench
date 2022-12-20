@@ -13,38 +13,39 @@ xbench是xuperchain的压测工具，功能：
 
 ## 快速开始
 
-1.执行构建
+1. 执行构建
 
 ```
 make
 ```
 
-2.准备bank账户
+2. 准备bank账户
 
 压测执行合约和转账会消耗token，需要确保bank账户(`data/bank`)中有充足的token：
 
-* 创世块配置中为bank账户预分配一笔token，参考`data/genesis/xuper.json`；
-* 区块链网络部署好后，为bank账户转入一笔token；
+* 创世块配置中为bank账户预分配一笔token，参考 [data/genesis/xuper.json](data/genesis/xuper.json)；
+* 区块链网络部署好后，为bank账户[转入][转账]一笔token；
 
-3.执行转账压测
+3. 执行转账压测
 
 ```bash
 bin/xbench --config=conf/transfer.yaml
 ```
 
-> 注意：修改配置文件中压测节点的ip:port
-> 更多案例参考：script/xbench.sh
+> 注意：修改配置文件中压测节点的 host(ip:port)
+> 
+> 更多案例参考：[script/xbench.sh](script/xbench.sh)
 
-4 执行存证压测
+4. 执行存证压测
 ```bash
-bin/cbench --config=conf/evidence.yaml
+bin/xbench --config=conf/evidence.yaml
 ```
 
-> 注意：修改xchain配置为**nofee**模式,
-> 设置data/genesis/xuper.json中nofee
-> 字段为true
+> 注意：修改xchain配置为**nofee**模式
+> 
+> 设置 `data/genesis/xuper.json` 中 `nofee` 字段为 `true`
 
-5.压测结果
+5. 压测结果
 
 xbench 执行完后会打印基础指标：响应耗时分位值、tps均值和成功率，更详细的指标通过grafana展示。
 
@@ -65,27 +66,27 @@ XuperChain（打点）=> prometheus（采样、存储）=> grafana（可视化�
     * 状态机：未确认交易量；
     * 网络：网络消息吞吐、耗时、字节量；
 
-部署xchain参考https://github.com/xuperchain/xuperchain ，启动xchain时，配置开启监控：
+[部署并启动][xchain 快速试用] xchain时，配置开启监控：
 
-* 设置conf/env.yaml文件中metricSwitch:true
+* 设置 [conf/env.yaml][xchain env.yaml] 文件中 `metricSwitch: true`
 
 部署prometheus和grafana服务，官网下载安装包，启动服务时使用下面的配置文件：
 
-* prometheus配置：conf/metric/prometheus.yml
-* grafana模板：conf/metric/grafana-xchain.json
+* prometheus配置：[conf/metric/prometheus.yml](conf/metric/prometheus.yml)
+* grafana模板：[conf/metric/grafana-xchain.json](conf/metric/grafana-xchain.json)
 
 如果需要查看机器指标：
 * 在运行区块链网络节点的机器上部署prometheus的node_exporter服务
-* grafana模板：conf/metric/grafana-node.json
+* grafana模板：[conf/metric/grafana-node.json](conf/metric/grafana-node.json)
 
 #### 支持的压测用例
 
-* transfer: 转账压测，通过调用sdk生成交易数据
-* transaction: 转账压测，离线生成交易数据，没有进行 SelectUTXO
-* evidence: 存证压测，离线生成存证数据，存证数据存放在desc字段
-* counter: counter合约压测，调用sdk生成数据
-* short_content: short_content存证合约压测，调用sdk生成数据
-* file: 文件压测，读取文件中的数据进行压测，tx数据是json格式，要求每个并发一个独立的文件
+* [transfer](conf/transfer.yaml): 转账压测，通过调用sdk生成交易数据
+* [transaction](conf/transaction.yaml): 转账压测，离线生成交易数据，没有进行 SelectUTXO
+* [evidence](conf/evidence.yaml): 存证压测，离线生成存证数据，存证数据存放在desc字段
+* [counter](conf/contract/counter.yaml): counter合约压测，调用sdk生成数据
+* [short_content](conf/contract/short_content.yaml): short_content存证合约压测，调用sdk生成数据
+* [file](conf/file.yaml): 文件压测，读取文件中的数据进行压测，tx数据是json格式，要求每个并发一个独立的文件
 
 #### 产出包介绍
 
@@ -177,3 +178,7 @@ type Contract interface {
 ## 文档
 
 [ghz Guide](https://ghz.sh/docs/intro)
+
+[转账]: https://xuper.baidu.com/n/xuperdoc/quickstart/quickstart.html#transfer
+[xchain 快速试用]: https://github.com/xuperchain/xuperchain#%E5%BF%AB%E9%80%9F%E8%AF%95%E7%94%A8
+[xchain env.yaml]: https://github.com/xuperchain/xuperchain/blob/master/conf/env.yaml
